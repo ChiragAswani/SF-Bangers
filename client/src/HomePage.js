@@ -1,6 +1,6 @@
 import React from 'react';
 import logo from './assets/logo.png';
-import {Button, DatePicker, Input, Progress} from 'antd';
+import {Button, Space, Input, Progress} from 'antd';
 import dayjs from 'dayjs';
 import './assets/homepage.css';
 
@@ -49,42 +49,28 @@ class HomePage extends React.Component {
             <div className="homepage-form-container">
                 <div className='homepage-form'>
                     <img src={logo} className='homepage-logo' alt='logo-home'/>
-                    <div className='sf-bangers-description'>SF Bangers will create a Spotify playlist with songs from artists performing in San Francisco for the week selected below</div>
+                    <div className='sf-bangers-description'>SF Bangers automatically creates a new Spotify playlist each week featuring songs from artists performing in San Francisco. A fresh playlist is generated every Monday for the upcoming week.</div>
                     <div className='homepage-form-section'>
-                        <div className='homepage-step-label'>Step 1</div>
-                        <div className='homepage-form-sublabel'>You need to authenticate with Spotify for SF Bangers to create playlists on your behalf</div>
-                        <Button onClick={() => this.authorizeWithSpotify()}>Authorize with Spotify</Button>
-                    </div>
-                    <div className='homepage-form-section'>
-                        <div className='homepage-step-label'>Step 2</div>
-                        <div className='homepage-form-sublabel'>Select the week that you want to create the playlist for</div>
-                        <DatePicker minDate={dayjs(new Date().toISOString().split('T')[0], 'YYYY-MM-DD')} picker='week' onChange={(weekObj) => this.setWeek(weekObj)}/>
-                    </div>
-                    <div className='homepage-form-section'>
-                        <div className='homepage-step-label'>Step 3</div>
-                        <div className='homepage-form-sublabel'>Enter your email to get a weekly Spotify playlist automatically added to your library, featuring artists playing concerts in the upcoming week</div>
-                        <Input placeholder='Enter your email address' onChange={(e) => this.setEmail(e.target.value)}/>
-                    </div>
-                    <div className='homepage-form-section'>
-                        <div className='homepage-step-label'>Step 4</div>
-                        <div className='homepage-form-sublabel'>Click the button below to generate the playlist</div>
-                        <Button onClick={() => this.generatePlaylist()}>Generate Playlist</Button>
-                    </div>
-                    <div className='homepage-form-section'>
-                        <div className='homepage-step-label'>Step 5</div>
-                        <div className='homepage-form-sublabel'>View the playlist below or the in SF Bangers playlist folder in your Spotify library</div>
-                        {percentage !== 100 ?
-                            <Progress percent={percentage} status="active" /> :
-                            <iframe
-                                className='generated-playlist-frame'
-                                data-testid="embed-iframe"
-                                src="https://open.spotify.com/embed/playlist/3LznaAI7XVhPyzp8eopWfv"
-                                allowFullScreen=""
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                            />
+                        <div className='homepage-step-label'>Feb 1 - 7</div>
+                        <div className='homepage-form-sublabel'>To find dates and venues for each artist, please visit https://foopee.com</div>
 
-                        }
+                        <iframe
+                            className='generated-playlist-frame'
+                            data-testid="embed-iframe"
+                            style={{height: '352px'}}
+                            src="https://open.spotify.com/embed/playlist/3LznaAI7XVhPyzp8eopWfv"
+                            allowFullScreen=""
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            loading="lazy"
+                        />
+                    </div>
+                    <div className='homepage-form-section'>
+                        <div className='homepage-step-label'>Weekly Updates</div>
+                        <div className='homepage-form-sublabel'>Enter your email to get a weekly Spotify playlist automatically added to your library, featuring artists playing concerts in the upcoming week</div>
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Input defaultValue="Combine input and button" />
+                            <Button type="primary">Submit</Button>
+                        </Space.Compact>
                     </div>
                 </div>
             </div>
