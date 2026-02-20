@@ -1,5 +1,4 @@
 body {
-    background-color: azure;
 }
 .homepage-form-container {
     display: flex;
@@ -40,7 +39,7 @@ body {
 }
 .sf-bangers-description {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
 }
