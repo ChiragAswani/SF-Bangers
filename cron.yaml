@@ -1,0 +1,5 @@
+cron:
+  - description: "Generate weekly SF Bangers playlist"
+    url: /generate-playlist?key=ohBE0DPCNAlRv3lU
+    schedule: every monday 09:00
+    timezone: America/Los_Angeles

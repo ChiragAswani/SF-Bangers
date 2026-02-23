@@ -11,11 +11,11 @@ handlers:
       Cache-Control: "public, max-age=31536000, immutable"
 
   # Define API routes to ensure they are handled by Node.js
-  - url: /leaderboard
+  - url: /generate-playlist
     script: auto
     secure: always
 
-  - url: /update-cache
+  - url: /get-playlists
     script: auto
     secure: always
 

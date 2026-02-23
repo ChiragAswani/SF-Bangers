@@ -23,6 +23,7 @@
     "open": "^11.0.0",
     "passport": "^0.4.1",
     "passport-twitter": "^1.0.4",
+    "path": "^0.12.7",
     "twit": "^2.2.11"
   }
 }
