@@ -8,7 +8,7 @@ const {generatePlaylistTop5PerArtist} = require('./generateSpotifyPlaylist');
         const selectedDateRange = dateRanges[1];
         const artists = await getArtistsForFoopeeWeek(selectedDateRange);
         const accessToken = await getSpotifyAccessTokenFromRefreshToken();
-        const playlistTitle = `SF Bangers / ${selectedDateRange[1]}`;
+        const playlistTitle = `SF Bangers / ${selectedDateRange}`;
         const playlistDescription = `Auto generated playlist by SF Bangers for concerts in SF from ${selectedDateRange} powered by Foopee`
         const playlistId = await generatePlaylistTop5PerArtist(accessToken, artists, playlistTitle, playlistDescription);
         console.log(playlistId);
