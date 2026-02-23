@@ -71,6 +71,14 @@ class HomePage extends React.Component {
                         />
                     </div>
                     <div className='homepage-form-section'>
+                        <div className='homepage-step-label'>Weekly Updates</div>
+                        <div className='homepage-form-sublabel'>Enter your email update your subscription preferences on weekly updates for any new playlists</div>
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Input disabled placeholder="This feature is currently in the works" />
+                            <Button type="primary" disabled>Submit</Button>
+                        </Space.Compact>
+                    </div>
+                    <div className='homepage-form-section'>
                         <div className='homepage-step-label'>Archives</div>
                         <div className='homepage-form-sublabel'>Below is a list of all previously generated playlists for artists that have performed in San Francisco</div>
                         <Table columns={columns} dataSource={archivedPlaylists} bordered={true}/>
