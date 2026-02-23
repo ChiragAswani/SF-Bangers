@@ -16,9 +16,9 @@ const fs = require('fs');
             file.homepage = './'
         }
         if (NODE_ENV === 'prod') {
-            obj.BACKEND_URL = 'https://sf-bangers.wl.r.appspot.com'
-            obj.FRONTEND_URL = 'https://sf-bangers.wl.r.appspot.com'
-            file.homepage = 'https://sf-bangers.wl.r.appspot.com'
+            obj.BACKEND_URL = 'https://sf-bangers.appspot.com'
+            obj.FRONTEND_URL = 'https://sf-bangers.appspot.com'
+            file.homepage = 'https://sf-bangers.appspot.com'
         }
         fs.writeFile('../client/src/env.json', JSON.stringify(obj), 'utf8', () => {});
         fs.writeFile('../vars/env.json', JSON.stringify(obj), 'utf8', () => {});
