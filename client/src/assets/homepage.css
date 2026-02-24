@@ -172,7 +172,7 @@ body {
     color: var(--muted2) !important;
     font-size: 12px;
     display: inline-block;
-    margin-top: 8px;
+    margin-top: 10px;
 }
 
 /* Hint box */
@@ -309,7 +309,7 @@ body {
 }
 
 .tableFooter {
-    margin-top: 0px;
+    margin-top: 17px;
 }
 
 /* Footer */

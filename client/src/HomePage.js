@@ -356,15 +356,6 @@ export default function HomePage() {
                                     Previously generated playlists for SF shows.
                                 </Text>
                             </div>
-
-                            <Input
-                                className="archiveSearch"
-                                value={archiveSearch}
-                                onChange={(e) => setArchiveSearch(e.target.value)}
-                                placeholder="Search by date range…"
-                                prefix={<SearchOutlined />}
-                                allowClear
-                            />
                         </div>
 
                         <Table
