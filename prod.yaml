@@ -23,6 +23,14 @@ handlers:
     script: auto
     secure: always
 
+  - url: /change-weekly-email-subscription
+    script: auto
+    secure: always
+
+  - url: /send-weekly-playlist
+    script: auto
+    secure: always
+
   # Serve the main index.html for React frontend (catch-all)
   - url: /.*
     static_files: build/index.html

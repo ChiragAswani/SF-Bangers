@@ -3,3 +3,8 @@ cron:
     url: /generate-playlist?key=ohBE0DPCNAlRv3lU
     schedule: every monday 09:00
     timezone: America/Los_Angeles
+
+  - description: "Send weekly SF Bangers playlist"
+    url: /send-weekly-playlist?key=ohBE0DPCNAlRv3lU
+    schedule: every monday 11:00
+    timezone: America/Los_Angeles
