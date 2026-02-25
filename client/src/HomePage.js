@@ -260,7 +260,7 @@ export default function HomePage() {
                                 <InfoCircleOutlined style={{ color: 'rgba(255, 255, 255, 0.52)', marginTop: 2 }} />
                                 <Text className="muted">
                                     Need venues/dates?{" "}
-                                    <Link href="https://foopee.com" target="_blank" rel="noreferrer">
+                                    <Link href="http://foopee.com" target="_blank" rel="noreferrer">
                                         foopee.com
                                     </Link>
                                 </Text>
