@@ -11,7 +11,7 @@ mv build/ ..
 cd ..
 sudo npm install
 gcloud config set project sf-bangers
-gcloud app deploy prod.yaml --no-cache
+gcloud app deploy prod.yaml cron.yaml --no-cache
 rm -r build/
 cd deployment/
 
