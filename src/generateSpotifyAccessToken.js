@@ -1,5 +1,5 @@
 async function getSpotifyAccessTokenFromRefreshToken(db) {
-    const SPOTIFY_CREDENTIALS = await db.collection('credentials').doc('SPOTIFY').get();
+    const SPOTIFY_CREDENTIALS = (await db.collection('credentials').doc('SPOTIFY').get()).data();
     const body = new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: SPOTIFY_CREDENTIALS.REFRESH_TOKEN,
