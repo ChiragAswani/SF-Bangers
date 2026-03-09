@@ -30,13 +30,7 @@ async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
         const msg = data?.error_description || data?.error || JSON.stringify(data);
         throw new Error(`Spotify token refresh failed (${res.status}): ${msg}`);
     }
-
-    // ✅ ADD THIS BLOCK — handle refresh token rotation
-    if (data.refresh_token && data.refresh_token !== credentials.SPOTIFY.REFRESH_TOKEN) {
-        credentials.SPOTIFY.REFRESH_TOKEN = data.refresh_token;
-        fs.writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2));
-    }
-
+    
     return data.access_token;
 }
 
