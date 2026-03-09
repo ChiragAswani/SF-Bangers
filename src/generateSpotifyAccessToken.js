@@ -1,4 +1,5 @@
-async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
+async function getSpotifyAccessTokenFromRefreshToken(db) {
+    const SPOTIFY_CREDENTIALS = await db.collection('credentials').doc('SPOTIFY').get();
     const body = new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: SPOTIFY_CREDENTIALS.REFRESH_TOKEN,
@@ -19,12 +20,7 @@ async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
     });
 
     const data = await res.json();
-
-    if (!res.ok) {
-        const msg = data?.error_description || data?.error || JSON.stringify(data);
-        throw new Error(`Spotify token refresh failed (${res.status}): ${msg}`);
-    }
-
+    await db.collection("credentials").doc("SPOTIFY").update({"REFRESH_TOKEN": data.refresh_token});
     return data.access_token;
 }
 
