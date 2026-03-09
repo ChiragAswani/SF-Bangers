@@ -1,9 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
-const credentialsPath = path.join(__dirname, "../vars/credentials.json");
-const credentials = require(credentialsPath);
-
 async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
     const body = new URLSearchParams({
         grant_type: "refresh_token",
@@ -30,7 +24,7 @@ async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
         const msg = data?.error_description || data?.error || JSON.stringify(data);
         throw new Error(`Spotify token refresh failed (${res.status}): ${msg}`);
     }
-    
+
     return data.access_token;
 }
 
