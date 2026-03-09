@@ -4,11 +4,11 @@ const path = require("path");
 const credentialsPath = path.join(__dirname, "../vars/credentials.json");
 const credentials = require(credentialsPath);
 
-async function getSpotifyAccessTokenFromRefreshToken() {
+async function getSpotifyAccessTokenFromRefreshToken(SPOTIFY_CREDENTIALS) {
     const body = new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: credentials.SPOTIFY.REFRESH_TOKEN,
-        client_id: credentials.SPOTIFY.CLIENT_ID,
+        refresh_token: SPOTIFY_CREDENTIALS.REFRESH_TOKEN,
+        client_id: SPOTIFY_CREDENTIALS.CLIENT_ID,
     });
 
     const res = await fetch("https://accounts.spotify.com/api/token", {
@@ -18,7 +18,7 @@ async function getSpotifyAccessTokenFromRefreshToken() {
             Authorization:
                 "Basic " +
                 Buffer.from(
-                    `${credentials.SPOTIFY.CLIENT_ID}:${credentials.SPOTIFY.CLIENT_SECRET}`
+                    `${SPOTIFY_CREDENTIALS.CLIENT_ID}:${SPOTIFY_CREDENTIALS.CLIENT_SECRET}`
                 ).toString("base64"),
         },
         body,

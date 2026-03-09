@@ -1,17 +1,20 @@
 const express = require("express");
 const crypto = require("crypto");
 const credentials = require("../vars/credentials");
+const admin = require('firebase-admin');
+const {getFirestore} = require('firebase-admin/firestore');
 
-const CLIENT_ID = credentials.SPOTIFY.CLIENT_ID;
+const app = express();
+admin.initializeApp({credential: admin.credential.cert(credentials.GCP_SERVICE_ACCOUNT)});
+const db = getFirestore(app, 'sfbangers');
+
 const REDIRECT_URI = "http://127.0.0.1:8080/callback";
-
+let CLIENT_ID = '';
 const SCOPES = [
     "playlist-modify-private",
     "playlist-modify-public",
     "user-read-private",
 ].join(" ");
-
-const app = express();
 
 function base64url(buffer) {
     return buffer
@@ -73,11 +76,9 @@ app.get("/callback", async (req, res) => {
             return res.send("❌ Error getting token — check console");
         }
 
-        console.log("\n🎉 YOUR REFRESH TOKEN:\n");
-        console.log(data.refresh_token);
-        console.log("\nSave this in your .env as SPOTIFY_REFRESH_TOKEN\n");
-
-        res.send("✅ Done — check your terminal for the refresh token");
+        console.log(`\n🎉 YOUR REFRESH TOKEN:\n${data.refresh_token}`);
+        await db.collection("credentials").doc("SPOTIFY").update({"REFRESH_TOKEN": data.refresh_token});
+        return res.send("✅ Done — check your terminal for the refresh token");
     } catch (err) {
         console.error(err);
         res.send("❌ Something went wrong");
@@ -87,4 +88,7 @@ app.get("/callback", async (req, res) => {
 // start server + open browser automatically
 app.listen(8080, async () => {
     console.log("🚀 http://127.0.0.1:8080/login");
+    const snapshot =  await db.collection('credentials').doc('SPOTIFY').get();
+    const SPOTIFY_CREDENTIALS = snapshot.data();
+    CLIENT_ID = SPOTIFY_CREDENTIALS.CLIENT_ID;
 });

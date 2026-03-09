@@ -29,7 +29,9 @@ app.get('/generate-playlist', async (req, res) => {
     const dateRanges = await getFoopeeConcertRangesByDate();
     const selectedDateRange = dateRanges[0];
     const artists = await getArtistsForFoopeeWeek(selectedDateRange);
-    const accessToken = await getSpotifyAccessTokenFromRefreshToken();
+
+    const snapshot =  await db.collection('credentials').doc('SPOTIFY').get();
+    const accessToken = await getSpotifyAccessTokenFromRefreshToken(snapshot.data());
     const playlistTitle = `SF Bangers / ${selectedDateRange}`;
     const playlistDescription = `Auto generated playlist by SF Bangers for concerts in SF from ${selectedDateRange} powered by Foopee`
     const playlistObj = await generatePlaylistTop5PerArtist(accessToken, artists, playlistTitle, playlistDescription);
