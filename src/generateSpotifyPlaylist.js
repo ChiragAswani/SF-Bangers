@@ -261,10 +261,10 @@ async function generatePlaylistTop5PerArtist(accessToken, artistNames, name, des
 
     const allUris = [];
     const perArtistResults = [];
-
+    const allArtists = [];
     for (const artist of artistNames) {
-        const q = encodeURIComponent(`artist:${artist}`);
-        const url = `${SPOTIFY_API}/search?q=${q}&type=track&limit=${perArtistLimit}&fields=tracks.items(uri)`;
+        const q = encodeURIComponent(`artist:"${artist}"`);
+        const url = `${SPOTIFY_API}/search?q=${q}&type=track&limit=${perArtistLimit}`;
 
         try {
             const res = await spotifyFetch(url, accessToken, {
@@ -279,7 +279,15 @@ async function generatePlaylistTop5PerArtist(accessToken, artistNames, name, des
                 perArtistResults.push({ artist, added: 0, reason: "no_tracks" });
                 continue;
             }
-
+            if (res.tracks && res.tracks.items && res.tracks.items.length) {
+                for (const i of res.tracks.items) {
+                    if (i.artists && i.artists.length) {
+                        for (const a of i.artists) {
+                            if (!allArtists.includes(a.id)) allArtists.push(a.id);
+                        }
+                    }
+                }
+            }
             allUris.push(...uris);
             perArtistResults.push({ artist, added: uris.length, reason: "queued" });
         } catch (e) {
@@ -332,6 +340,7 @@ async function generatePlaylistTop5PerArtist(accessToken, artistNames, name, des
         addedTotal,
         uniqueTrackCount: uniqueUris.length,
         perArtistResults,
+        allArtists
     };
 }
 

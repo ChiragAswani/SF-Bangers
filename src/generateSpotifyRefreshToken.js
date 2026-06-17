@@ -13,7 +13,10 @@ let CLIENT_ID = '';
 const SCOPES = [
     "playlist-modify-private",
     "playlist-modify-public",
+    "playlist-read-private",
+    "playlist-read-collaborative",
     "user-read-private",
+    "user-top-read",
 ].join(" ");
 
 function base64url(buffer) {
