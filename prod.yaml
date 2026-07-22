@@ -35,6 +35,10 @@ handlers:
     script: auto
     secure: always
 
+  - url: /similar-artists
+    script: auto
+    secure: always
+
   # Serve the main index.html for React frontend (catch-all)
   - url: /.*
     static_files: build/index.html
