@@ -20,12 +20,32 @@ import {
     SearchOutlined,
     SpotifyOutlined,
     InfoCircleOutlined,
+    CalendarOutlined,
+    EnvironmentOutlined,
+    DollarOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import env from "./env.json";
 import "./assets/homepage.css";
 
 const { Title, Text, Link } = Typography;
+
+function formatShowDate(show) {
+    if (!show?.date) return show?.dayOfWeek || "Date TBD";
+    try {
+        const d = new Date(`${show.date}T00:00:00`);
+        return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    } catch (e) {
+        return show.date;
+    }
+}
+
+function extractTicketPrice(details) {
+    if (!details) return null;
+    const match = details.match(/\$[\d,.]+(?:\s*[-/]\s*\$?[\d,.]+)*|\bfree\b/i);
+    if (!match) return null;
+    return /^free$/i.test(match[0]) ? "Free" : match[0].trim();
+}
 
 function isValidEmail(email) {
     if (!email) return false;
@@ -46,6 +66,11 @@ export default function HomePage() {
     const [email, setEmail] = useState("");
     const [archiveSearch, setArchiveSearch] = useState("");
     const [error, setError] = useState("");
+    const [similarArtistQuery, setSimilarArtistQuery] = useState("");
+    const [similarArtists, setSimilarArtists] = useState([]);
+    const [similarArtistsLoading, setSimilarArtistsLoading] = useState(false);
+    const [similarArtistsError, setSimilarArtistsError] = useState("");
+    const [similarArtistsSearched, setSimilarArtistsSearched] = useState(false);
 
     const activePlaylistUrl = useMemo(() => {
         if (!activePlaylistId) return "";
@@ -62,6 +87,11 @@ export default function HomePage() {
         if (!q) return archivedPlaylists;
         return archivedPlaylists.filter((p) => p.dateRange.toLowerCase().includes(q));
     }, [archivedPlaylists, archiveSearch]);
+
+    const sortedSimilarArtists = useMemo(
+        () => [...similarArtists].sort((a, b) => (b.score || 0) - (a.score || 0)),
+        [similarArtists]
+    );
 
     const columns = useMemo(
         () => [
@@ -179,6 +209,30 @@ export default function HomePage() {
             setEmail("");
         } catch (e) {
             messageApi.error("Subscription update failed. Please try again.");
+        }
+    }
+
+    async function findSimilarArtists() {
+        const trimmed = similarArtistQuery.trim();
+        if (!trimmed) {
+            messageApi.error("Please enter an artist name.");
+            return;
+        }
+
+        setSimilarArtistsLoading(true);
+        setSimilarArtistsError("");
+        setSimilarArtistsSearched(true);
+
+        try {
+            const resp = await axios.get(`${env.BACKEND_URL}/similar-artists`, {
+                params: { artist: trimmed },
+            });
+            setSimilarArtists(resp.data || []);
+        } catch (e) {
+            setSimilarArtistsError("Couldn’t find similar artists. Please try again.");
+            setSimilarArtists([]);
+        } finally {
+            setSimilarArtistsLoading(false);
         }
     }
 
@@ -391,6 +445,134 @@ export default function HomePage() {
                     </Card>
                 </section>
             </main>
+
+            <section className="similarArtistsSection">
+                <Card className="card glass similarArtistsCard" bodyStyle={{ padding: 24 }}>
+                    <div className="similarArtistsHeader">
+                        <div>
+                            <Text className="eyebrow">Discover</Text>
+                            <Title level={4} className="cardTitle similarArtistsTitle">
+                                Find Similar Artists
+                            </Title>
+                            <Text className="muted">
+                                Enter an artist you like and we’ll surface similar acts with upcoming SF shows.
+                            </Text>
+                        </div>
+
+                        <Space.Compact className="similarArtistsSearch">
+                            <Input
+                                size="large"
+                                value={similarArtistQuery}
+                                onChange={(e) => setSimilarArtistQuery(e.target.value)}
+                                placeholder="e.g. Electric Guest, Sombr.."
+                                prefix={<SearchOutlined />}
+                                onPressEnter={findSimilarArtists}
+                            />
+                            <Button
+                                style={{marginLeft: 10}}
+                                type="primary"
+                                size="large"
+                                loading={similarArtistsLoading}
+                                onClick={findSimilarArtists}
+                            >
+                                Search
+                            </Button>
+                        </Space.Compact>
+                    </div>
+
+                    {similarArtistsLoading ? (
+                        <div style={{ paddingTop: 20 }}>
+                            <Skeleton active paragraph={{ rows: 4 }} />
+                        </div>
+                    ) : similarArtistsError ? (
+                        <div className="centerPad">
+                            <Text className="errorText">{similarArtistsError}</Text>
+                        </div>
+                    ) : similarArtistsSearched && similarArtists.length === 0 ? (
+                        <div style={{ paddingTop: 20 }}>
+                            <Empty description="No similar artists found." />
+                        </div>
+                    ) : sortedSimilarArtists.length > 0 ? (
+                        <div className="similarArtistsGrid">
+                            {sortedSimilarArtists.map((item, idx) => (
+                                <div className="similarArtistCard" key={item.name}>
+                                    <div className="similarArtistRank">{idx + 1}</div>
+                                    <div className="similarArtistBody">
+                                        <div className="similarArtistNameRow">
+                                            <Text strong className="similarArtistName">
+                                                {item.name}
+                                            </Text>
+                                            <Tooltip title="Similarity score">
+                                                <span className="similarArtistScore">{item.score}%</span>
+                                            </Tooltip>
+                                        </div>
+
+                                        <div className="similarArtistScoreBar">
+                                            <div
+                                                className="similarArtistScoreBarFill"
+                                                style={{ width: `${item.score}%` }}
+                                            />
+                                        </div>
+
+                                        <Text className="tinyMuted similarArtistReason">
+                                            {item.reason}
+                                        </Text>
+
+                                        {item.nextShow ? (
+                                            <div className="similarArtistShow">
+                                                <span className="similarArtistShowRow">
+                                                    <CalendarOutlined />
+                                                    <Text className="muted">{formatShowDate(item.nextShow)}</Text>
+                                                </span>
+                                                {item.nextShow.venue && (
+                                                    <span className="similarArtistShowRow">
+                                                        <EnvironmentOutlined />
+                                                        <Text className="muted">{item.nextShow.venue}</Text>
+                                                    </span>
+                                                )}
+                                                {extractTicketPrice(item.nextShow.details) && (
+                                                    <span className="similarArtistShowRow">
+                                                        <DollarOutlined />
+                                                        <Text className="muted">
+                                                            {extractTicketPrice(item.nextShow.details)}
+                                                        </Text>
+                                                    </span>
+                                                )}
+                                                {item.showCount > 1 && (
+                                                    <Tag className="pillTag" color="blue">
+                                                        +{item.showCount - 1} more show{item.showCount - 1 > 1 ? "s" : ""}
+                                                    </Tag>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <Text className="tinyMuted">No upcoming show found.</Text>
+                                        )}
+                                    </div>
+
+                                    <Tooltip title="Listen on Spotify">
+                                        <Button
+                                            shape="circle"
+                                            className="ghostBtn similarArtistSpotifyBtn"
+                                            icon={<SpotifyOutlined />}
+                                            onClick={() =>
+                                                window.open(
+                                                    `https://open.spotify.com/search/${encodeURIComponent(item.name)}`,
+                                                    "_blank",
+                                                    "noreferrer"
+                                                )
+                                            }
+                                        />
+                                    </Tooltip>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="centerPad">
+                            <Text className="muted">Search for an artist above to get started.</Text>
+                        </div>
+                    )}
+                </Card>
+            </section>
 
             <footer className="footer">
                 <Text className="tinyMuted">

@@ -11,6 +11,7 @@ const {getFoopeeConcertRangesByDate, getArtistsForFoopeeWeek} = require("./src/f
 const {getSpotifyAccessTokenFromRefreshToken} = require("./src/generateSpotifyAccessToken");
 const {generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
+const {findSimilarArtists} = require("./src/findSimilarArtists");
 
 const app = express();
 app.disable('etag');
@@ -51,6 +52,20 @@ app.get('/get-playlists', async (req, res) => {
     }
     const data = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(),}));
     return res.status(200).send(data)
+});
+
+app.get('/similar-artists', async (req, res) => {
+    if (!req.query || typeof req.query.artist !== 'string' || !req.query.artist.trim()) {
+        return res.status(400).send('Missing artist query parameter');
+    }
+
+    try {
+        const results = await findSimilarArtists(db, credentials.ANTHROPIC_API_KEY, req.query.artist.trim());
+        return res.status(200).json(results);
+    } catch (err) {
+        console.error('similar-artists error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
 });
 
 app.get('/scrape-foopee-list', async (req, res) => {

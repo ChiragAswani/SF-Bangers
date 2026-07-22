@@ -245,7 +245,7 @@ async function spotifyFetch(url, accessToken, options = {}) {
 async function generatePlaylistTop5PerArtist(accessToken, artistNames, name, description, opts = {}) {
     const {
         public: isPublic = true,
-        perArtistLimit = 3,   // how many tracks you pull per artist from search
+        perArtistLimit = 1,   // how many tracks you pull per artist from search
         addChunkSize = 100,    // max 100 per Spotify add-items request
         debug = true,
     } = opts;

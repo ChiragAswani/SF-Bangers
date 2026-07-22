@@ -312,6 +312,173 @@ body {
     margin-top: 17px;
 }
 
+/* Similar artists */
+.similarArtistsSection {
+    max-width: 1120px;
+    margin: 14px auto 0;
+}
+
+.similarArtistsCard {
+    position: relative;
+    overflow: hidden;
+}
+
+.similarArtistsCard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(680px 280px at 15% -10%, rgba(167, 139, 250, 0.16), transparent 60%),
+    radial-gradient(680px 280px at 100% 0%, rgba(126, 231, 135, 0.12), transparent 60%);
+    pointer-events: none;
+}
+
+.similarArtistsHeader {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.similarArtistsTitle {
+    margin: 4px 0 6px 0 !important;
+}
+
+.similarArtistsSearch {
+    width: 420px;
+    max-width: 100%;
+}
+
+.similarArtistsGrid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.similarArtistCard {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding: 14px 44px 14px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.similarArtistCard:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.similarArtistRank {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12.5px;
+    color: var(--bg0);
+    background: linear-gradient(135deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
+}
+
+.similarArtistBody {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.similarArtistSpotifyBtn {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(126, 231, 135, 0.96) !important;
+}
+
+.similarArtistSpotifyBtn:hover {
+    border-color: rgba(126, 231, 135, 0.45) !important;
+    background: rgba(126, 231, 135, 0.14) !important;
+}
+
+.similarArtistNameRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.similarArtistName {
+    color: var(--text) !important;
+    font-size: 15px;
+}
+
+.similarArtistScore {
+    flex: 0 0 auto;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: rgba(7, 10, 18, 0.92);
+    background: linear-gradient(135deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+
+.similarArtistScoreBar {
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+    overflow: hidden;
+    margin: 6px 0 2px;
+}
+
+.similarArtistScoreBarFill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
+}
+
+.similarArtistReason {
+    margin-top: 0 !important;
+    line-height: 1.4;
+}
+
+.similarArtistShow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 8px;
+}
+
+.similarArtistShowRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
+.similarArtistShowRow .anticon {
+    color: rgba(126, 231, 135, 0.9);
+}
+
 /* Footer */
 .footer {
     max-width: 1120px;
@@ -339,6 +506,13 @@ body {
     }
     .spotifyFrame {
         height: 390px;
+    }
+    .similarArtistsHeader {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .similarArtistsSearch {
+        width: 100%;
     }
 }
 
