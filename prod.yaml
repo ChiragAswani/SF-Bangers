@@ -30,6 +30,10 @@ handlers:
   - url: /send-weekly-playlist
     script: auto
     secure: always
+  
+  - url: /scrape-foopee-list
+    script: auto
+    secure: always
 
   # Serve the main index.html for React frontend (catch-all)
   - url: /.*

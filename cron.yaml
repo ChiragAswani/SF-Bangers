@@ -8,3 +8,8 @@ cron:
     url: /send-weekly-playlist?key=ohBE0DPCNAlRv3lU
     schedule: every monday 11:00
     timezone: America/Los_Angeles
+
+  - description: "Scrape Foopee List"
+    url: /scrape-foopee-list?key=ohBE0DPCNAlRv3lU
+    schedule: every monday 11:00
+    timezone: America/Los_Angeles
