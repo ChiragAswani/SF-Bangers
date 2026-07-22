@@ -10,6 +10,7 @@ const credentials = require('./vars/credentials.json');
 const {getFoopeeConcertRangesByDate, getArtistsForFoopeeWeek} = require("./src/foopee");
 const {getSpotifyAccessTokenFromRefreshToken} = require("./src/generateSpotifyAccessToken");
 const {generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
+const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
 
 const app = express();
 app.disable('etag');
@@ -50,6 +51,26 @@ app.get('/get-playlists', async (req, res) => {
     }
     const data = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(),}));
     return res.status(200).send(data)
+});
+
+app.get('/scrape-foopee-list', async (req, res) => {
+    if (
+        !req.query ||
+        typeof req.query.key !== "string" ||
+        req.query.key !== "ohBE0DPCNAlRv3lU"
+    ) {
+        return res.status(401).send("Unauthorized");
+    }
+    const artistsColRef = db.collection('foopeeArtists');
+    let snap = await artistsColRef.limit(500).get();
+    while (!snap.empty) {
+        const batch = db.batch();
+        snap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        snap = await artistsColRef.limit(500).get();
+    }
+    await scrapeFoopeeListToFirestore(db);
+    return res.status(200).send(true);
 });
 
 app.get('/change-weekly-email-subscription', async (req, res) => {
