@@ -10,6 +10,15 @@ import { WebView } from 'react-native-webview';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Safety net: if the WebView's onLoadEnd/onError never fires for any
+// reason (slow network, a stalled request, a native edge case that
+// doesn't repro in Expo Go), don't leave the user stuck on the splash
+// screen forever.
+const SPLASH_FALLBACK_MS = 8000;
+setTimeout(() => {
+  SplashScreen.hideAsync().catch(() => {});
+}, SPLASH_FALLBACK_MS);
+
 // Points at the deployed SF Bangers site. Swap to your machine's LAN IP
 // (e.g. "http://192.168.1.23:3000") to test against a local `npm start`.
 const SITE_URL = 'https://sf-bangers.appspot.com';

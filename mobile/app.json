@@ -9,7 +9,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sfbangers.app"
+      "bundleIdentifier": "com.sfbangers.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.sfbangers.app",
@@ -32,7 +35,13 @@
           "imageWidth": 180,
           "resizeMode": "contain"
         }
-      ]
-    ]
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "502f8b96-18ea-40b8-895e-969c7cd409a2"
+      }
+    }
   }
 }
