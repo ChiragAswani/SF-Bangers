@@ -251,7 +251,7 @@ export default function HomePage() {
             <div className="bgGlow bgGlowA" />
             <div className="bgGlow bgGlowB" />
 
-            <header className="topBar">
+            <header className="topBar" id="section-home">
                 <div className="brandRow">
                     <img src={logo} className="brandLogo" alt="SF Bangers logo" />
                     <div className="brandText">
@@ -293,7 +293,7 @@ export default function HomePage() {
             <main className="grid">
                 {/* LEFT: Active playlist */}
                 <section className="leftCol">
-                    <Card className="card glass" bodyStyle={{ padding: 18 }}>
+                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-weekly">
                         <div className="cardHeader">
                             <div>
                                 <Text className="eyebrow">This week</Text>
@@ -372,7 +372,7 @@ export default function HomePage() {
                 {/* RIGHT: Email + Archives */}
                 <section className="rightCol">
                     {/* Email card */}
-                    <Card className="card glass" bodyStyle={{ padding: 18 }}>
+                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-subscribe">
                         <div className="sectionTitleRow">
                             <Title level={5} className="sectionTitle">
                                 Weekly Updates
@@ -400,7 +400,7 @@ export default function HomePage() {
                     </Card>
 
                     {/* Archives card */}
-                    <Card className="card glass" bodyStyle={{ padding: 18 }}>
+                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-archives">
                         <div className="sectionTitleRow">
                             <div>
                                 <Title level={5} className="sectionTitle">
@@ -446,7 +446,7 @@ export default function HomePage() {
                 </section>
             </main>
 
-            <section className="similarArtistsSection">
+            <section className="similarArtistsSection" id="section-similar-artists">
                 <Card className="card glass similarArtistsCard" bodyStyle={{ padding: 24 }}>
                     <div className="similarArtistsHeader">
                         <div>
