@@ -60,8 +60,10 @@ app.get('/similar-artists', async (req, res) => {
         return res.status(400).send('Missing artist query parameter');
     }
 
+    const mode = ['blowing-up', 'hidden-gems'].includes(req.query.mode) ? req.query.mode : undefined;
+
     try {
-        const results = await findSimilarArtists(db, credentials.ANTHROPIC_API_KEY, req.query.artist.trim());
+        const results = await findSimilarArtists(db, credentials.ANTHROPIC_API_KEY, req.query.artist.trim(), { mode });
         return res.status(200).json(results);
     } catch (err) {
         console.error('similar-artists error:', err);

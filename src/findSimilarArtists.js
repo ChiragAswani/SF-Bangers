@@ -46,14 +46,26 @@ function earliestShow(shows) {
     return shows.slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""))[0];
 }
 
+const DISCOVERY_MODE_INSTRUCTIONS = {
+    "blowing-up":
+        `Additionally, bias your picks toward artists who are currently buzzing or blowing up — higher mainstream ` +
+        `visibility, momentum, or chart/streaming presence — over lesser-known deep cuts, when musical similarity is ` +
+        `otherwise close.`,
+    "hidden-gems":
+        `Additionally, bias your picks toward lesser-known, underground, or overlooked artists — deep cuts over ` +
+        `mainstream/highly recognizable names — when musical similarity is otherwise close.`,
+};
+
 async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
-    const { collectionName = "foopeeArtists", model = "claude-opus-4-8" } = opts;
+    const { collectionName = "foopeeArtists", model = "claude-opus-4-8", mode } = opts;
 
     const candidatesMap = await getArtistCandidates(db, collectionName);
     const candidates = [...candidatesMap.keys()];
     if (candidates.length === 0) return [];
 
     const anthropic = new Anthropic({ apiKey });
+
+    const modeInstruction = DISCOVERY_MODE_INSTRUCTIONS[mode] || "";
 
     const response = await anthropic.messages.create({
         model,
@@ -69,6 +81,7 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
                     `From this list ONLY, pick the 10 DISTINCT artists most musically similar to "${artistName}". ` +
                     `Give each one a similarity score from 0-100 (100 = nearly identical in sound/genre/style, 0 = unrelated), ` +
                     `reflecting your honest assessment rather than spreading scores evenly. ` +
+                    `${modeInstruction} ` +
                     `Only return artist names that appear verbatim in the list above, and never list the same artist more than once.`,
             },
         ],

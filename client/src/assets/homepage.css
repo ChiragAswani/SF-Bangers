@@ -80,7 +80,6 @@ body {
 .brandLogo {
     width: 54px;
     height: 54px;
-    border-radius: 14px;
     object-fit: contain;
     filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
 }
@@ -124,6 +123,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.archivesCard {
+    /* Height is set explicitly via JS (measured from the playlist card) — CSS
+       stretch/flex-grow can only grow a shorter column, it can't shrink and clip
+       a naturally-tall one, so an exact pixel height is the only reliable fix. */
+    overflow: hidden;
 }
 
 .card {
@@ -277,34 +283,56 @@ body {
     font-weight: 700 !important;
 }
 
-/* Table */
-.archivesTable .ant-table {
-    background: transparent !important;
-}
-
-.archivesTable .ant-table-container {
+/* Archives list */
+.archivesList {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     border-radius: 14px;
-    overflow: hidden;
+    scrollbar-width: thin;
 }
 
-.archivesTable .ant-table-tbody > tr > td {
-    border-color: rgba(255, 255, 255, 0.10) !important;
-    color: var(--text) !important;
-    background: transparent !important;
-    padding: 12px 10px !important;
+.archivesList::-webkit-scrollbar {
+    width: 6px;
 }
 
-.archivesTable .ant-table-tbody > tr:hover > td {
-    background: rgba(255, 255, 255, 0.06) !important;
+.archivesList::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
 }
 
-.archivesTable a {
+.archiveRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.15s ease;
+}
+
+.archiveRow:first-child {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.archiveRow:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.archiveRowLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: rgba(126, 231, 135, 0.96) !important;
     font-weight: 650;
     text-decoration: none;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.archivesTable a:hover {
+.archiveRowLink:hover {
     text-decoration: underline;
 }
 
@@ -349,6 +377,98 @@ body {
 .similarArtistsSearch {
     width: 420px;
     max-width: 100%;
+}
+
+.discoveryModeRow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.discoveryModeLabel {
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 750;
+    margin-top: 0 !important;
+}
+
+.discoveryModeToggle {
+    display: inline-flex;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.discoveryModeOption {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+.discoveryModeOption:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.discoveryModeOption:active {
+    transform: scale(0.97);
+}
+
+.discoveryModeIcon {
+    font-size: 16px;
+    flex: 0 0 auto;
+    color: var(--muted2);
+    transition: color 0.18s ease;
+}
+
+.discoveryModeText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.discoveryModeName {
+    font-size: 12.5px;
+    font-weight: 750;
+    color: var(--text);
+}
+
+.discoveryModeDesc {
+    font-size: 11px;
+    color: var(--muted2);
+}
+
+.discoveryModeBlowingUp.active {
+    background: linear-gradient(135deg, rgba(126, 231, 135, 0.22), rgba(56, 189, 248, 0.16));
+    border-color: rgba(126, 231, 135, 0.45);
+    box-shadow: 0 8px 20px rgba(126, 231, 135, 0.14);
+}
+
+.discoveryModeBlowingUp.active .discoveryModeIcon {
+    color: rgba(126, 231, 135, 0.95);
+}
+
+.discoveryModeHiddenGems.active {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.26), rgba(56, 189, 248, 0.12));
+    border-color: rgba(167, 139, 250, 0.5);
+    box-shadow: 0 8px 20px rgba(167, 139, 250, 0.16);
+}
+
+.discoveryModeHiddenGems.active .discoveryModeIcon {
+    color: rgba(167, 139, 250, 0.95);
 }
 
 .similarArtistsGrid {
@@ -534,6 +654,16 @@ body {
         align-items: stretch;
     }
     .similarArtistsSearch {
+        width: 100%;
+    }
+    .discoveryModeRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .discoveryModeToggle {
+        flex-direction: column;
+    }
+    .discoveryModeOption {
         width: 100%;
     }
 }

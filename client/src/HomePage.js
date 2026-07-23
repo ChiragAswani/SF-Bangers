@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import logo from "./assets/logo.png";
 import {
     Button,
     Input,
-    Table,
     message,
     Typography,
     Space,
@@ -22,10 +21,11 @@ import {
     InfoCircleOutlined,
     CalendarOutlined,
     EnvironmentOutlined,
-    DollarOutlined,
     LinkOutlined,
     LoadingOutlined,
     StopOutlined,
+    FireOutlined,
+    CompassOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import env from "./env.json";
@@ -41,13 +41,6 @@ function formatShowDate(show) {
     } catch (e) {
         return show.date;
     }
-}
-
-function extractTicketPrice(details) {
-    if (!details) return null;
-    const match = details.match(/\$[\d,.]+(?:\s*[-/]\s*\$?[\d,.]+)*|\bfree\b/i);
-    if (!match) return null;
-    return /^free$/i.test(match[0]) ? "Free" : match[0].trim();
 }
 
 function isValidEmail(email) {
@@ -75,6 +68,11 @@ export default function HomePage() {
     const [similarArtistsError, setSimilarArtistsError] = useState("");
     const [similarArtistsSearched, setSimilarArtistsSearched] = useState(false);
     const [ticketLinksLoading, setTicketLinksLoading] = useState(false);
+    const [discoveryMode, setDiscoveryMode] = useState("blowing-up");
+    const [archivesCardHeight, setArchivesCardHeight] = useState(null);
+
+    const playlistCardRef = useRef(null);
+    const emailCardRef = useRef(null);
 
     const activePlaylistUrl = useMemo(() => {
         if (!activePlaylistId) return "";
@@ -95,43 +93,6 @@ export default function HomePage() {
     const sortedSimilarArtists = useMemo(
         () => [...similarArtists].sort((a, b) => (b.score || 0) - (a.score || 0)),
         [similarArtists]
-    );
-
-    const columns = useMemo(
-        () => [
-            {
-                title: "Playlist",
-                dataIndex: "dateRange",
-                key: "dateRange",
-                render: (dateRange, record) => (
-                    <Space size={8}>
-                        <SpotifyOutlined />
-                        <a href={record.playlistUrl} target="_blank" rel="noreferrer">
-                            SF Bangers / {dateRange}
-                        </a>
-                    </Space>
-                ),
-            },
-            {
-                title: "",
-                key: "actions",
-                width: 120,
-                align: "right",
-                render: (_, record) => (
-                    <Space>
-                        <Tooltip title="Copy link">
-                            <Button
-                                size="small"
-                                className="ghostBtn"
-                                icon={<CopyOutlined />}
-                                onClick={() => copyToClipboard(record.playlistUrl, "Archive link copied")}
-                            />
-                        </Tooltip>
-                    </Space>
-                ),
-            },
-        ],
-        []
     );
 
     function normalizePlaylists(raw) {
@@ -184,6 +145,28 @@ export default function HomePage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // CSS alone can't shrink the archives card to match the playlist card's height —
+    // stretch/flex-grow only ever grows a shorter column, never clips a naturally-tall
+    // one — so measure the real rendered heights and set an explicit pixel height instead.
+    useEffect(() => {
+        const GAP = 14;
+
+        const updateHeight = () => {
+            const leftHeight = playlistCardRef.current?.offsetHeight;
+            const emailHeight = emailCardRef.current?.offsetHeight;
+            if (!leftHeight || !emailHeight) return;
+            setArchivesCardHeight(Math.max(160, leftHeight - emailHeight - GAP));
+        };
+
+        updateHeight();
+
+        const observer = new ResizeObserver(updateHeight);
+        if (playlistCardRef.current) observer.observe(playlistCardRef.current);
+        if (emailCardRef.current) observer.observe(emailCardRef.current);
+
+        return () => observer.disconnect();
+    }, []);
+
     function copyToClipboard(text, successMsg = "Copied") {
         if (!text) return;
         navigator.clipboard
@@ -229,7 +212,7 @@ export default function HomePage() {
 
         try {
             const resp = await axios.get(`${env.BACKEND_URL}/similar-artists`, {
-                params: { artist: trimmed },
+                params: { artist: trimmed, mode: discoveryMode },
             });
             const results = resp.data || [];
             setSimilarArtists(results);
@@ -251,19 +234,24 @@ export default function HomePage() {
         setTicketLinksLoading(true);
         try {
             const resp = await axios.post(`${env.BACKEND_URL}/ticket-links`, { events });
-            const linksByArtist = new Map((resp.data?.results || []).map((r) => [r.artist, r.ticketLink]));
+            const infoByArtist = new Map((resp.data?.results || []).map((r) => [r.artist, r]));
             setSimilarArtists((prev) =>
-                prev.map((p) =>
-                    p.nextShow
-                        ? { ...p, nextShow: { ...p.nextShow, ticketLink: linksByArtist.get(p.name) ?? null } }
-                        : p
-                )
+                prev.map((p) => {
+                    if (!p.nextShow) return p;
+                    const info = infoByArtist.get(p.name);
+                    return {
+                        ...p,
+                        nextShow: { ...p.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null },
+                    };
+                })
             );
         } catch (e) {
-            // Ticket links are a non-critical enhancement. Resolve every pending card to
+            // Ticket info is a non-critical enhancement. Resolve every pending card to
             // "not available" rather than leaving them stuck showing a loading spinner.
             setSimilarArtists((prev) =>
-                prev.map((p) => (p.nextShow ? { ...p, nextShow: { ...p.nextShow, ticketLink: null } } : p))
+                prev.map((p) =>
+                    p.nextShow ? { ...p, nextShow: { ...p.nextShow, ticketLink: null, price: null } } : p
+                )
             );
         } finally {
             setTicketLinksLoading(false);
@@ -293,41 +281,16 @@ export default function HomePage() {
                             SF Bangers
                         </Title>
                         <Text className="brandSubtitle">
-                            Weekly Spotify playlists for artists performing in San Francisco.
+                            Discover new music from artists playing live in San Francisco.
                         </Text>
                     </div>
-                </div>
-
-                <div className="topBarActions">
-                    <Tooltip title="Refresh">
-                        <Button
-                            className="ghostBtn"
-                            icon={<ReloadOutlined />}
-                            loading={refreshing}
-                            onClick={onRefresh}
-                        >
-                            Refresh
-                        </Button>
-                    </Tooltip>
-
-                    {activePlaylistUrl && (
-                        <Tooltip title="Copy active playlist link">
-                            <Button
-                                type="primary"
-                                icon={<CopyOutlined />}
-                                onClick={() => copyToClipboard(activePlaylistUrl, "Playlist link copied")}
-                            >
-                                Copy link
-                            </Button>
-                        </Tooltip>
-                    )}
                 </div>
             </header>
 
             <main className="grid">
                 {/* LEFT: Active playlist */}
                 <section className="leftCol">
-                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-weekly">
+                    <Card ref={playlistCardRef} className="card glass" bodyStyle={{ padding: 18 }} id="section-weekly">
                         <div className="cardHeader">
                             <div>
                                 <Text className="eyebrow">This week</Text>
@@ -340,19 +303,10 @@ export default function HomePage() {
                                     </Tag>
                                 </div>
                                 <Text className="muted">
-                                    New playlist every Monday for the upcoming week.
+                                    New playlist generated every Monday with one song from each artist playing live in SF that week.
                                 </Text>
                             </div>
 
-                            <div className="hintBox">
-                                <InfoCircleOutlined style={{ color: 'rgba(255, 255, 255, 0.52)', marginTop: 2 }} />
-                                <Text className="muted">
-                                    Need venues/dates?{" "}
-                                    <Link href="http://foopee.com" target="_blank" rel="noreferrer">
-                                        foopee.com
-                                    </Link>
-                                </Text>
-                            </div>
                         </div>
 
                         {loading ? (
@@ -406,7 +360,7 @@ export default function HomePage() {
                 {/* RIGHT: Email + Archives */}
                 <section className="rightCol">
                     {/* Email card */}
-                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-subscribe">
+                    <Card ref={emailCardRef} className="card glass" bodyStyle={{ padding: 18 }} id="section-subscribe">
                         <div className="sectionTitleRow">
                             <Title level={5} className="sectionTitle">
                                 Weekly Updates
@@ -434,7 +388,12 @@ export default function HomePage() {
                     </Card>
 
                     {/* Archives card */}
-                    <Card className="card glass" bodyStyle={{ padding: 18 }} id="section-archives">
+                    <Card
+                        className="card glass archivesCard"
+                        style={archivesCardHeight ? { height: archivesCardHeight } : undefined}
+                        bodyStyle={{ padding: 18, display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}
+                        id="section-archives"
+                    >
                         <div className="sectionTitleRow">
                             <div>
                                 <Title level={5} className="sectionTitle">
@@ -446,28 +405,39 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        <Table
-                            className="archivesTable"
-                            columns={columns}
-                            dataSource={filteredArchives}
-                            pagination={{
-                                pageSize: 5,
-                                showSizeChanger: false,
-                            }}
-                            showHeader={false}
-                            locale={{
-                                emptyText: (
-                                    <Empty
-                                        description={
-                                            archivedPlaylists.length
-                                                ? "No matches."
-                                                : "No archived playlists yet."
-                                        }
-                                    />
-                                ),
-                            }}
-                            rowKey="key"
-                        />
+                        {filteredArchives.length === 0 ? (
+                            <div className="centerPad">
+                                <Empty
+                                    description={
+                                        archivedPlaylists.length ? "No matches." : "No archived playlists yet."
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <div className="archivesList">
+                                {filteredArchives.map((record) => (
+                                    <div className="archiveRow" key={record.key}>
+                                        <a
+                                            href={record.playlistUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="archiveRowLink"
+                                        >
+                                            <SpotifyOutlined />
+                                            <span>SF Bangers / {record.dateRange}</span>
+                                        </a>
+                                        <Tooltip title="Copy link">
+                                            <Button
+                                                size="small"
+                                                className="ghostBtn"
+                                                icon={<CopyOutlined />}
+                                                onClick={() => copyToClipboard(record.playlistUrl, "Archive link copied")}
+                                            />
+                                        </Tooltip>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {archivedPlaylists.length > 0 && (
                             <div className="tableFooter">
@@ -495,7 +465,6 @@ export default function HomePage() {
 
                         <Space.Compact className="similarArtistsSearch">
                             <Input
-                                size="large"
                                 value={similarArtistQuery}
                                 onChange={(e) => setSimilarArtistQuery(e.target.value)}
                                 placeholder="e.g. Electric Guest, Sombr.."
@@ -505,13 +474,48 @@ export default function HomePage() {
                             <Button
                                 style={{marginLeft: 10}}
                                 type="primary"
-                                size="large"
                                 loading={similarArtistsLoading}
                                 onClick={findSimilarArtists}
                             >
                                 Search
                             </Button>
                         </Space.Compact>
+                    </div>
+
+                    <div className="discoveryModeRow">
+                        <Text className="tinyMuted discoveryModeLabel">Discovery mode</Text>
+                        <div className="discoveryModeToggle" role="radiogroup" aria-label="Similar artist discovery mode">
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={discoveryMode === "blowing-up"}
+                                className={`discoveryModeOption discoveryModeBlowingUp${
+                                    discoveryMode === "blowing-up" ? " active" : ""
+                                }`}
+                                onClick={() => setDiscoveryMode("blowing-up")}
+                            >
+                                <FireOutlined className="discoveryModeIcon" />
+                                <span className="discoveryModeText">
+                                    <span className="discoveryModeName">Blowing Up</span>
+                                    <span className="discoveryModeDesc">Buzzing acts on the rise</span>
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={discoveryMode === "hidden-gems"}
+                                className={`discoveryModeOption discoveryModeHiddenGems${
+                                    discoveryMode === "hidden-gems" ? " active" : ""
+                                }`}
+                                onClick={() => setDiscoveryMode("hidden-gems")}
+                            >
+                                <CompassOutlined className="discoveryModeIcon" />
+                                <span className="discoveryModeText">
+                                    <span className="discoveryModeName">Hidden Gems</span>
+                                    <span className="discoveryModeDesc">Deep cuts, off the radar</span>
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
                     {similarArtistsLoading ? (
@@ -564,14 +568,6 @@ export default function HomePage() {
                                                         <Text className="muted">{item.nextShow.venue}</Text>
                                                     </span>
                                                 )}
-                                                {extractTicketPrice(item.nextShow.details) && (
-                                                    <span className="similarArtistShowRow">
-                                                        <DollarOutlined />
-                                                        <Text className="muted">
-                                                            {extractTicketPrice(item.nextShow.details)}
-                                                        </Text>
-                                                    </span>
-                                                )}
                                                 {item.nextShow.ticketLink ? (
                                                     <a
                                                         href={item.nextShow.ticketLink}
@@ -580,21 +576,23 @@ export default function HomePage() {
                                                         className="similarArtistShowRow similarArtistTicketLink"
                                                     >
                                                         <LinkOutlined />
-                                                        <Text className="muted">Buy tickets</Text>
+                                                        <Text className="muted">
+                                                            Buy tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
+                                                        </Text>
                                                     </a>
                                                 ) : item.nextShow.ticketLink === undefined && ticketLinksLoading ? (
                                                     <span className="similarArtistShowRow similarArtistTicketPending">
                                                         <LoadingOutlined spin />
                                                         <Text className="tinyMuted">Finding tickets…</Text>
                                                     </span>
-                                                ) : item.nextShow.ticketLink === null ? (
+                                                ) : (
                                                     <Tooltip title="Couldn't verify a ticket link for this show">
                                                         <span className="similarArtistShowRow similarArtistTicketUnavailable">
                                                             <StopOutlined />
-                                                            <Text className="tinyMuted">No ticket link found</Text>
+                                                            <Text className="tinyMuted">No tickets found</Text>
                                                         </span>
                                                     </Tooltip>
-                                                ) : null}
+                                                )}
                                                 {item.showCount > 1 && (
                                                     <Tag className="pillTag" color="blue">
                                                         +{item.showCount - 1} more show{item.showCount - 1 > 1 ? "s" : ""}
