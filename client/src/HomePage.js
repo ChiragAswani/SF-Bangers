@@ -282,31 +282,72 @@ export default function HomePage() {
                         <Title level={3} className="brandTitle">
                             SF Bangers
                         </Title>
-                        <Text className="brandSubtitle">
-                            Discover new music from artists playing live in San Francisco.
-                        </Text>
                     </div>
                 </div>
             </header>
 
-            <section className="generateBanner">
-                <Card className="card glass generateBannerCard" bodyStyle={{ padding: 20 }}>
-                    <div className="generateBannerInner">
-                        <div>
-                            <Text className="eyebrow">New</Text>
-                            <Title level={4} className="cardTitle" style={{ margin: "2px 0 4px" }}>
-                                Generate your own SF mix
+            <section className="heroSection">
+                <Card className="card glass heroCard" bodyStyle={{ padding: 0 }}>
+                    <div className="heroGlow" />
+                    <div className="heroCardInner">
+                        <div className="heroIntro">
+                            <Text className="eyebrow">How it works</Text>
+                            <Title level={2} className="heroTitle">
+                                Live SF music, turned into playlists
                             </Title>
-                            <Text className="muted">
-                                Connect Spotify, discover artists like your favorites playing live in SF, and build a
-                                playlist made just for you.
+                            <Text className="heroSubtitle">
+                                We track every show happening in San Francisco, match each artist to a track on
+                                Spotify, and turn it into a playlist — dropped weekly for everyone, or generated
+                                on demand just for you.
                             </Text>
+                            <RouterLink to="/generate" className="heroCtaLink">
+                                <Button type="primary" size="large" className="heroCta" icon={<ThunderboltOutlined />}>
+                                    Generate your mix
+                                </Button>
+                            </RouterLink>
                         </div>
-                        <RouterLink to="/generate">
-                            <Button type="primary" size="large" icon={<ThunderboltOutlined />}>
-                                Generate
-                            </Button>
-                        </RouterLink>
+
+                        <div className="heroSteps">
+                            <div className="heroStep">
+                                <div className="heroStepIcon heroStepIconA">
+                                    <EnvironmentOutlined />
+                                </div>
+                                <Text strong className="heroStepTitle">
+                                    We track SF shows
+                                </Text>
+                                <Text className="heroStepDesc">
+                                    Every artist playing live around the city, scraped fresh each week.
+                                </Text>
+                            </div>
+
+                            <div className="heroStepArrow" />
+
+                            <div className="heroStep">
+                                <div className="heroStepIcon heroStepIconB">
+                                    <SpotifyOutlined />
+                                </div>
+                                <Text strong className="heroStepTitle">
+                                    Matched to Spotify
+                                </Text>
+                                <Text className="heroStepDesc">
+                                    One track pulled from each artist's catalog, ready to stream.
+                                </Text>
+                            </div>
+
+                            <div className="heroStepArrow" />
+
+                            <div className="heroStep">
+                                <div className="heroStepIcon heroStepIconC">
+                                    <ThunderboltOutlined />
+                                </div>
+                                <Text strong className="heroStepTitle">
+                                    Your mix, your way
+                                </Text>
+                                <Text className="heroStepDesc">
+                                    Get the weekly drop, or generate a playlist from your own top artists.
+                                </Text>
+                            </div>
+                        </div>
                     </div>
                 </Card>
             </section>
