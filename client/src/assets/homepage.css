@@ -479,6 +479,28 @@ body {
     color: rgba(126, 231, 135, 0.9);
 }
 
+.similarArtistTicketLink {
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.similarArtistTicketLink:hover .ant-typography,
+.similarArtistTicketLink:hover .anticon {
+    color: rgba(126, 231, 135, 0.9);
+}
+
+.similarArtistTicketPending .anticon {
+    color: var(--muted);
+}
+
+.similarArtistTicketUnavailable {
+    opacity: 0.6;
+}
+
+.similarArtistTicketUnavailable .anticon {
+    color: var(--muted);
+}
+
 /* Footer */
 .footer {
     max-width: 1120px;

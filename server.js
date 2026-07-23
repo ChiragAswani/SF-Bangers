@@ -12,6 +12,7 @@ const {getSpotifyAccessTokenFromRefreshToken} = require("./src/generateSpotifyAc
 const {generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
 const {findSimilarArtists} = require("./src/findSimilarArtists");
+const {getTicketLinks} = require("./src/getTicketLinks");
 
 const app = express();
 app.disable('etag');
@@ -64,6 +65,27 @@ app.get('/similar-artists', async (req, res) => {
         return res.status(200).json(results);
     } catch (err) {
         console.error('similar-artists error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.post('/ticket-links', async (req, res) => {
+    const events = req.body?.events;
+    if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ error: 'Missing events array in request body' });
+    }
+
+    const cleanEvents = events
+        .filter((e) => e && typeof e.artist === 'string' && typeof e.venue === 'string' && typeof e.date === 'string')
+        .map((e) => ({ artist: e.artist.trim(), venue: e.venue.trim(), date: e.date.trim() }))
+        .filter((e) => e.artist && e.venue && e.date)
+        .slice(0, 8);
+
+    try {
+        const results = await getTicketLinks(credentials.ANTHROPIC_API_KEY, cleanEvents);
+        return res.status(200).json({ results });
+    } catch (err) {
+        console.error('ticket-links error:', err);
         return res.status(500).json({ error: err?.message || String(err) });
     }
 });

@@ -23,6 +23,9 @@ import {
     CalendarOutlined,
     EnvironmentOutlined,
     DollarOutlined,
+    LinkOutlined,
+    LoadingOutlined,
+    StopOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import env from "./env.json";
@@ -71,6 +74,7 @@ export default function HomePage() {
     const [similarArtistsLoading, setSimilarArtistsLoading] = useState(false);
     const [similarArtistsError, setSimilarArtistsError] = useState("");
     const [similarArtistsSearched, setSimilarArtistsSearched] = useState(false);
+    const [ticketLinksLoading, setTicketLinksLoading] = useState(false);
 
     const activePlaylistUrl = useMemo(() => {
         if (!activePlaylistId) return "";
@@ -227,12 +231,42 @@ export default function HomePage() {
             const resp = await axios.get(`${env.BACKEND_URL}/similar-artists`, {
                 params: { artist: trimmed },
             });
-            setSimilarArtists(resp.data || []);
+            const results = resp.data || [];
+            setSimilarArtists(results);
+            fetchTicketLinks(results);
         } catch (e) {
             setSimilarArtistsError("Couldn’t find similar artists. Please try again.");
             setSimilarArtists([]);
         } finally {
             setSimilarArtistsLoading(false);
+        }
+    }
+
+    async function fetchTicketLinks(results) {
+        const events = results
+            .filter((item) => item.nextShow && item.nextShow.venue && item.nextShow.date)
+            .map((item) => ({ artist: item.name, venue: item.nextShow.venue, date: item.nextShow.date }));
+        if (events.length === 0) return;
+
+        setTicketLinksLoading(true);
+        try {
+            const resp = await axios.post(`${env.BACKEND_URL}/ticket-links`, { events });
+            const linksByArtist = new Map((resp.data?.results || []).map((r) => [r.artist, r.ticketLink]));
+            setSimilarArtists((prev) =>
+                prev.map((p) =>
+                    p.nextShow
+                        ? { ...p, nextShow: { ...p.nextShow, ticketLink: linksByArtist.get(p.name) ?? null } }
+                        : p
+                )
+            );
+        } catch (e) {
+            // Ticket links are a non-critical enhancement. Resolve every pending card to
+            // "not available" rather than leaving them stuck showing a loading spinner.
+            setSimilarArtists((prev) =>
+                prev.map((p) => (p.nextShow ? { ...p, nextShow: { ...p.nextShow, ticketLink: null } } : p))
+            );
+        } finally {
+            setTicketLinksLoading(false);
         }
     }
 
@@ -538,6 +572,29 @@ export default function HomePage() {
                                                         </Text>
                                                     </span>
                                                 )}
+                                                {item.nextShow.ticketLink ? (
+                                                    <a
+                                                        href={item.nextShow.ticketLink}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="similarArtistShowRow similarArtistTicketLink"
+                                                    >
+                                                        <LinkOutlined />
+                                                        <Text className="muted">Buy tickets</Text>
+                                                    </a>
+                                                ) : item.nextShow.ticketLink === undefined && ticketLinksLoading ? (
+                                                    <span className="similarArtistShowRow similarArtistTicketPending">
+                                                        <LoadingOutlined spin />
+                                                        <Text className="tinyMuted">Finding tickets…</Text>
+                                                    </span>
+                                                ) : item.nextShow.ticketLink === null ? (
+                                                    <Tooltip title="Couldn't verify a ticket link for this show">
+                                                        <span className="similarArtistShowRow similarArtistTicketUnavailable">
+                                                            <StopOutlined />
+                                                            <Text className="tinyMuted">No ticket link found</Text>
+                                                        </span>
+                                                    </Tooltip>
+                                                ) : null}
                                                 {item.showCount > 1 && (
                                                     <Tag className="pillTag" color="blue">
                                                         +{item.showCount - 1} more show{item.showCount - 1 > 1 ? "s" : ""}
