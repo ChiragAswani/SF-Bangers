@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import logo from "./assets/logo.png";
 import {
     Button,
@@ -26,6 +27,7 @@ import {
     StopOutlined,
     FireOutlined,
     CompassOutlined,
+    ThunderboltOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import env from "./env.json";
@@ -286,6 +288,28 @@ export default function HomePage() {
                     </div>
                 </div>
             </header>
+
+            <section className="generateBanner">
+                <Card className="card glass generateBannerCard" bodyStyle={{ padding: 20 }}>
+                    <div className="generateBannerInner">
+                        <div>
+                            <Text className="eyebrow">New</Text>
+                            <Title level={4} className="cardTitle" style={{ margin: "2px 0 4px" }}>
+                                Generate your own SF mix
+                            </Title>
+                            <Text className="muted">
+                                Connect Spotify, discover artists like your favorites playing live in SF, and build a
+                                playlist made just for you.
+                            </Text>
+                        </div>
+                        <RouterLink to="/generate">
+                            <Button type="primary" size="large" icon={<ThunderboltOutlined />}>
+                                Generate
+                            </Button>
+                        </RouterLink>
+                    </div>
+                </Card>
+            </section>
 
             <main className="grid">
                 {/* LEFT: Active playlist */}

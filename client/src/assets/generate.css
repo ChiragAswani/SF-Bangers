@@ -1,0 +1,607 @@
+/* generate.css — full-screen "Generate" flow. Reuses CSS custom properties
+   (--bg0, --card, --stroke, --radius, etc.) declared in homepage.css. */
+
+.generateShell {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 64px 20px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: radial-gradient(900px 600px at 20% 10%, rgba(126, 231, 135, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 80% 20%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(900px 600px at 70% 90%, rgba(167, 139, 250, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+}
+
+.generateGlowA,
+.generateGlowB {
+    position: fixed;
+    width: 480px;
+    height: 480px;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.generateGlowA {
+    top: -140px;
+    left: -140px;
+    background: rgba(29, 185, 84, 0.18);
+}
+
+.generateGlowB {
+    bottom: -160px;
+    right: -160px;
+    background: rgba(56, 189, 248, 0.14);
+}
+
+.generateCloseBtn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--stroke);
+    background: var(--card);
+    color: var(--text);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.generateCloseBtn:hover {
+    background: var(--card2);
+    transform: scale(1.06);
+}
+
+.generateCenterStage {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 112px);
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 18px;
+}
+
+.generateStage {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+}
+
+.generateEyebrow {
+    display: block;
+    color: #1DB954;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.generateHero {
+    color: var(--text) !important;
+    font-size: clamp(32px, 6vw, 56px) !important;
+    font-weight: 800 !important;
+    margin: 4px 0 !important;
+    line-height: 1.1 !important;
+}
+
+.generateStageTitle {
+    color: var(--text) !important;
+    font-size: clamp(22px, 4vw, 34px) !important;
+    font-weight: 800 !important;
+    margin: 2px 0 6px !important;
+}
+
+.generateSubhero {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 480px;
+    line-height: 1.55;
+}
+
+.generateSubheroSmall {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.generateMuted {
+    color: var(--muted2);
+    font-size: 13px;
+}
+
+.generateErrorText {
+    color: #ff7a7a;
+    font-size: 14px;
+}
+
+.generateSpotifyBtn {
+    background: #1DB954 !important;
+    border-color: #1DB954 !important;
+    color: #06120a !important;
+    font-weight: 700 !important;
+    border-radius: 999px !important;
+    height: 48px !important;
+    padding: 0 28px !important;
+    margin-top: 8px;
+}
+
+.generateSpotifyBtn:hover {
+    background: #21e065 !important;
+    border-color: #21e065 !important;
+}
+
+.generatePrimaryBtn {
+    background: linear-gradient(135deg, #1DB954, #17a34a) !important;
+    border: none !important;
+    color: #06120a !important;
+    font-weight: 700 !important;
+    border-radius: 999px !important;
+    height: 48px !important;
+    padding: 0 26px !important;
+}
+
+.generatePrimaryBtn:disabled {
+    opacity: 0.45 !important;
+}
+
+.generateGhostBtn {
+    background: var(--card) !important;
+    border: 1px solid var(--stroke) !important;
+    color: var(--text) !important;
+    border-radius: 999px !important;
+    height: 48px !important;
+    padding: 0 24px !important;
+}
+
+.generateGhostBtn:hover {
+    background: var(--card2) !important;
+}
+
+.generateActionsRow {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 22px;
+}
+
+.generateBackBtn {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0 10px;
+}
+
+.generateBackBtn:hover {
+    color: var(--text);
+}
+
+/* Top artist reveal grid */
+.generateArtistGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 20px;
+    width: 100%;
+    margin-top: 22px;
+}
+
+.generateArtistCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 10px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.generateArtistImgWrap {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(29, 185, 84, 0.5);
+}
+
+.generateArtistImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.generateArtistImgFallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card2);
+    color: var(--muted);
+    font-size: 34px;
+    font-weight: 700;
+}
+
+.generateArtistName {
+    color: var(--text) !important;
+    font-weight: 600;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Similar-artist groups (accordion) */
+.generateGroupList {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.generateGroup {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-align: left;
+}
+
+.generateGroupHeader {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+}
+
+.generateGroupHeader.open {
+    background: var(--card2);
+}
+
+.generateGroupHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.generateGroupThumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.generateGroupThumbFallback {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card2);
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.generateGroupName {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.generateGroupHeaderRight {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.generateGroupBadge {
+    background: rgba(29, 185, 84, 0.18);
+    color: #1DB954;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+}
+
+.generateGroupChevron {
+    display: inline-flex;
+    transition: transform 0.25s ease;
+    color: var(--muted);
+}
+
+.generateGroupChevron.open {
+    transform: rotate(90deg);
+}
+
+.generateGroupBody {
+    padding: 0 18px 18px;
+    overflow: hidden;
+}
+
+.generateGroupLoading {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.generateSimilarGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+}
+
+.generateSimilarCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px;
+    background: var(--card2);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    cursor: pointer;
+    color: var(--text);
+    text-align: left;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.generateSimilarCard:hover {
+    transform: translateY(-2px);
+}
+
+.generateSimilarCard:focus-visible {
+    outline: 2px solid #1DB954;
+    outline-offset: 2px;
+}
+
+.generateSimilarCard.selected {
+    border-color: #1DB954;
+    background: rgba(29, 185, 84, 0.12);
+}
+
+.generateSimilarCheck {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #1DB954;
+    font-size: 18px;
+}
+
+.generateSimilarTop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding-right: 22px;
+}
+
+.generateSimilarImgWrap {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.generateSimilarImgWrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.generateSimilarHeadline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.generateSimilarName {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.generateSimilarScore {
+    color: #1DB954;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.generateSimilarScoreBar {
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.generateSimilarScoreBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #1DB954, #38bdf8);
+    border-radius: 999px;
+}
+
+.generateSimilarReason {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.generateSimilarShowBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.generateSimilarShowRow {
+    color: var(--muted2);
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.generateSimilarTicketLink {
+    color: #1DB954;
+    text-decoration: none;
+}
+
+.generateSimilarTicketLink:hover {
+    text-decoration: underline;
+}
+
+.generateSimilarTicketUnavailable {
+    color: var(--muted2);
+}
+
+.generateSimilarMoreShows {
+    display: inline-block;
+    align-self: flex-start;
+    background: rgba(56, 189, 248, 0.16);
+    color: #7dd3fc;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 9px;
+    margin-top: 2px;
+}
+
+.generateSimilarMuted {
+    color: var(--muted2);
+    font-size: 11.5px;
+}
+
+/* Discovery mode toggle */
+.generateModeRow {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 14px 0 6px;
+}
+
+.generateModeOption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.generateModeOption.active {
+    border-color: #1DB954;
+    background: rgba(29, 185, 84, 0.14);
+}
+
+.generateModeIcon {
+    font-size: 18px;
+    color: #1DB954;
+}
+
+.generateModeText {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.generateModeName {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.generateModeDesc {
+    font-size: 11px;
+    color: var(--muted2);
+}
+
+/* Review + result */
+.generateReviewList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 18px;
+    max-width: 700px;
+}
+
+.generateReviewChip {
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.generatePlaylistEmbed {
+    width: 100%;
+    max-width: 420px;
+    height: 380px;
+    border: none;
+    border-radius: var(--radius);
+    margin-top: 18px;
+    box-shadow: var(--shadow);
+}
+
+@media (max-width: 520px) {
+    .generateShell {
+        padding: 48px 14px 32px;
+    }
+
+    .generateArtistImgWrap {
+        width: 90px;
+        height: 90px;
+    }
+}

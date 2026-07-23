@@ -43,6 +43,14 @@ handlers:
     script: auto
     secure: always
 
+  - url: /auth/spotify/.*
+    script: auto
+    secure: always
+
+  - url: /generate/.*
+    script: auto
+    secure: always
+
   # Serve the main index.html for React frontend (catch-all)
   - url: /.*
     static_files: build/index.html

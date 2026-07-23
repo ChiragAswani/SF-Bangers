@@ -9,21 +9,35 @@ const env = require('./vars/env.json');
 const credentials = require('./vars/credentials.json');
 const {getFoopeeConcertRangesByDate, getArtistsForFoopeeWeek} = require("./src/foopee");
 const {getSpotifyAccessTokenFromRefreshToken} = require("./src/generateSpotifyAccessToken");
-const {generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
+const {spotifyFetch, generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
 const {findSimilarArtists} = require("./src/findSimilarArtists");
 const {getTicketLinks} = require("./src/getTicketLinks");
+const {parseCookies} = require("./src/cookies");
+const {
+    generatePkcePair,
+    buildAuthorizeUrl,
+    getSpotifyAppCredentials,
+    exchangeCodeForTokens,
+    createUserSession,
+    getValidAccessTokenForSession,
+    getSpotifyAppAccessToken,
+} = require("./src/spotifyUserAuth");
 
 const app = express();
 app.disable('etag');
 app.use(express.static(__dirname + '/build', { etag: false }));
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 admin.initializeApp({credential: admin.credential.cert(credentials.GCP_SERVICE_ACCOUNT)});
 const db = getFirestore(app, 'sfbangers');
+
+const SESSION_COOKIE = 'sfb_session';
+const PKCE_COOKIE = 'sfb_pkce';
+const IS_PROD = env.NODE_ENV === 'prod';
 
 app.get('/generate-playlist', async (req, res) => {
     if (!req.query || !req.query.key || typeof(req.query.key) !== 'string' || req.query.key !== 'ohBE0DPCNAlRv3lU') {
@@ -88,6 +102,173 @@ app.post('/ticket-links', async (req, res) => {
         return res.status(200).json({ results });
     } catch (err) {
         console.error('ticket-links error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.get('/auth/spotify/login', async (req, res) => {
+    try {
+        const { clientId } = await getSpotifyAppCredentials(db);
+        const { codeVerifier, codeChallenge } = generatePkcePair();
+        const redirectUri = `${env.BACKEND_URL}/auth/spotify/callback`;
+
+        res.cookie(PKCE_COOKIE, codeVerifier, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: IS_PROD,
+            maxAge: 10 * 60 * 1000,
+        });
+
+        return res.redirect(buildAuthorizeUrl(clientId, redirectUri, codeChallenge));
+    } catch (err) {
+        console.error('spotify login error:', err);
+        return res.status(500).send('Unable to start Spotify login');
+    }
+});
+
+app.get('/auth/spotify/callback', async (req, res) => {
+    try {
+        const code = req.query.code;
+        const codeVerifier = parseCookies(req)[PKCE_COOKIE];
+
+        if (!code || !codeVerifier) {
+            return res.status(400).send('Missing code or PKCE verifier — please try connecting again.');
+        }
+
+        const { clientId, clientSecret } = await getSpotifyAppCredentials(db);
+        const redirectUri = `${env.BACKEND_URL}/auth/spotify/callback`;
+        const tokens = await exchangeCodeForTokens(clientId, clientSecret, redirectUri, code, codeVerifier);
+
+        const meRes = await fetch('https://api.spotify.com/v1/me', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+        const me = await meRes.json().catch(() => null);
+
+        const sessionId = await createUserSession(db, tokens, me?.id);
+
+        res.clearCookie(PKCE_COOKIE);
+        res.cookie(SESSION_COOKIE, sessionId, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: IS_PROD,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return res.redirect(`${env.FRONTEND_URL}/generate?connected=1`);
+    } catch (err) {
+        console.error('spotify callback error:', err);
+        return res.status(500).send('Spotify login failed — please try again.');
+    }
+});
+
+app.get('/auth/spotify/status', async (req, res) => {
+    try {
+        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const accessToken = await getValidAccessTokenForSession(db, sessionId);
+        return res.status(200).json({ connected: !!accessToken });
+    } catch (err) {
+        return res.status(200).json({ connected: false });
+    }
+});
+
+app.get('/generate/top-artists', async (req, res) => {
+    try {
+        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const accessToken = await getValidAccessTokenForSession(db, sessionId);
+        if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
+
+        const timeRanges = ['short_term', 'medium_term', 'long_term'];
+        const responses = await Promise.all(
+            timeRanges.map((timeRange) =>
+                spotifyFetch(
+                    `https://api.spotify.com/v1/me/top/artists?time_range=${timeRange}&limit=50`,
+                    accessToken,
+                    { label: `top-artists:${timeRange}`, debug: false }
+                )
+            )
+        );
+
+        const byId = new Map();
+        for (const r of responses) {
+            for (const a of r?.items || []) {
+                if (!byId.has(a.id)) {
+                    byId.set(a.id, { id: a.id, name: a.name, images: a.images || [], genres: a.genres || [] });
+                }
+            }
+        }
+
+        const pool = [...byId.values()];
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+
+        return res.status(200).json({ artists: pool });
+    } catch (err) {
+        console.error('top-artists error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.get('/generate/artist-images', async (req, res) => {
+    const namesParam = req.query.names;
+    if (typeof namesParam !== 'string' || !namesParam.trim()) {
+        return res.status(400).json({ error: 'Missing names query parameter' });
+    }
+    const names = namesParam.split(',').map((n) => n.trim()).filter(Boolean).slice(0, 15);
+
+    try {
+        const appToken = await getSpotifyAppAccessToken(db);
+        const results = await Promise.all(
+            names.map(async (name) => {
+                try {
+                    const q = encodeURIComponent(`artist:"${name}"`);
+                    const data = await spotifyFetch(
+                        `https://api.spotify.com/v1/search?q=${q}&type=artist&limit=1`,
+                        appToken,
+                        { label: `artist-image:${name}`, debug: false }
+                    );
+                    const artist = data?.artists?.items?.[0];
+                    return { name, image: artist?.images?.[0]?.url || null };
+                } catch (e) {
+                    return { name, image: null };
+                }
+            })
+        );
+        return res.status(200).json(results);
+    } catch (err) {
+        console.error('artist-images error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.post('/generate/playlist', async (req, res) => {
+    const artists = req.body?.artists;
+    if (!Array.isArray(artists) || artists.length === 0) {
+        return res.status(400).json({ error: 'Missing artists array in request body' });
+    }
+    const cleanArtists = [...new Set(artists.filter((a) => typeof a === 'string' && a.trim()).map((a) => a.trim()))];
+    if (cleanArtists.length === 0) {
+        return res.status(400).json({ error: 'No valid artist names provided' });
+    }
+
+    try {
+        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const accessToken = await getValidAccessTokenForSession(db, sessionId);
+        if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
+
+        const title = 'My SF Bangers Mix';
+        const description = `Made with SF Bangers — one track from each of ${cleanArtists.length} artist${cleanArtists.length > 1 ? 's' : ''} playing live in SF.`;
+
+        const playlistObj = await generatePlaylistTop5PerArtist(accessToken, cleanArtists, title, description, {
+            public: false,
+            perArtistLimit: 1,
+            debug: false,
+        });
+
+        return res.status(200).json({ playlistId: playlistObj.playlistId });
+    } catch (err) {
+        console.error('generate playlist error:', err);
         return res.status(500).json({ error: err?.message || String(err) });
     }
 });

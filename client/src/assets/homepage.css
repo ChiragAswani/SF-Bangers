@@ -108,6 +108,20 @@ body {
     justify-content: flex-end;
 }
 
+/* Generate banner */
+.generateBanner {
+    max-width: 1120px;
+    margin: 0 auto 14px;
+}
+
+.generateBannerInner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
 /* Layout grid */
 .grid {
     max-width: 1120px;

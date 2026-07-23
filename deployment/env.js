@@ -11,8 +11,14 @@ const fs = require('fs');
         const filePath = '/Users/chiragaswani/Documents/GitHub/sfbangers/client/package.json';
         const file = require(filePath);
         if (NODE_ENV === 'local') {
-            obj.BACKEND_URL = 'http://localhost:8080'
-            obj.FRONTEND_URL = 'http://localhost:3000'
+            // Spotify's OAuth redirect URI validation rejects the "localhost" hostname
+            // (it can be hijacked via DNS/hosts-file manipulation, per RFC 8252) and
+            // requires the literal loopback IP instead.
+            obj.BACKEND_URL = 'http://127.0.0.1:8080'
+            // must be the same host (127.0.0.1) as BACKEND_URL, not "localhost" — they're
+            // different sites for SameSite cookie purposes, which breaks the session cookie
+            // on cross-origin XHR calls even though both resolve to loopback.
+            obj.FRONTEND_URL = 'http://127.0.0.1:3000'
             file.homepage = './'
         }
         if (NODE_ENV === 'prod') {
