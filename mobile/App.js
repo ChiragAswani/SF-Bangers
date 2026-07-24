@@ -21,8 +21,8 @@ setTimeout(() => {
 
 // Points at the deployed SF Bangers site. Swap to your machine's LAN IP
 // (e.g. "http://192.168.1.23:3000") to test against a local `npm start`.
-const SITE_URL = 'https://sf-bangers.appspot.com';
-const SITE_HOST = 'sf-bangers.appspot.com';
+const SITE_URL = 'https://sfbangers.com';
+const SITE_HOST = 'sfbangers.com';
 const BG_COLOR = '#070a12';
 const BAR_COLOR = '#0b1020';
 const ACCENT_COLOR = '#7ee787';
