@@ -23,7 +23,7 @@ function generatePkcePair() {
     return { codeVerifier, codeChallenge };
 }
 
-function buildAuthorizeUrl(clientId, redirectUri, codeChallenge) {
+function buildAuthorizeUrl(clientId, redirectUri, codeChallenge, state) {
     const authUrl = new URL("https://accounts.spotify.com/authorize");
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("client_id", clientId);
@@ -31,6 +31,7 @@ function buildAuthorizeUrl(clientId, redirectUri, codeChallenge) {
     authUrl.searchParams.set("redirect_uri", redirectUri);
     authUrl.searchParams.set("code_challenge_method", "S256");
     authUrl.searchParams.set("code_challenge", codeChallenge);
+    if (state) authUrl.searchParams.set("state", state);
     return authUrl.toString();
 }
 

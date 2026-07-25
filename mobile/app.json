@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sfbangers.app",
@@ -17,7 +17,7 @@
     "android": {
       "package": "com.sfbangers.app",
       "adaptiveIcon": {
-        "backgroundColor": "#070a12",
+        "backgroundColor": "#FBF1E2",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
@@ -30,13 +30,15 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#070a12",
+          "backgroundColor": "#FBF1E2",
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

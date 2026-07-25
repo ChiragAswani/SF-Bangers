@@ -15,3 +15,8 @@
 
 # Node.js dependencies:
 node_modules/
+
+# The mobile app is a separate Expo/RN project, not part of the App Engine
+# backend/web deploy — its generated native build artifacts (mobile/ios,
+# mobile/android) alone can exceed App Engine's 10,000-file deploy limit.
+mobile/

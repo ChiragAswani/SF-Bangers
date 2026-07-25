@@ -13,7 +13,7 @@ const {spotifyFetch, generatePlaylistTop5PerArtist} = require("./src/generateSpo
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
 const {findSimilarArtists} = require("./src/findSimilarArtists");
 const {getTicketLinks} = require("./src/getTicketLinks");
-const {parseCookies} = require("./src/cookies");
+const {parseCookies, getSessionId} = require("./src/cookies");
 const {
     generatePkcePair,
     buildAuthorizeUrl,
@@ -38,6 +38,7 @@ const db = getFirestore(app, 'sfbangers');
 const SESSION_COOKIE = 'sfb_session';
 const PKCE_COOKIE = 'sfb_pkce';
 const IS_PROD = env.NODE_ENV === 'prod';
+const MOBILE_AUTH_DEEP_LINK = 'sfbangers://auth-callback';
 
 app.get('/generate-playlist', async (req, res) => {
     if (!req.query || !req.query.key || typeof(req.query.key) !== 'string' || req.query.key !== 'ohBE0DPCNAlRv3lU') {
@@ -111,6 +112,7 @@ app.get('/auth/spotify/login', async (req, res) => {
         const { clientId } = await getSpotifyAppCredentials(db);
         const { codeVerifier, codeChallenge } = generatePkcePair();
         const redirectUri = `${env.BACKEND_URL}/auth/spotify/callback`;
+        const state = req.query.state === 'mobile' ? 'mobile' : undefined;
 
         res.cookie(PKCE_COOKIE, codeVerifier, {
             httpOnly: true,
@@ -119,7 +121,7 @@ app.get('/auth/spotify/login', async (req, res) => {
             maxAge: 10 * 60 * 1000,
         });
 
-        return res.redirect(buildAuthorizeUrl(clientId, redirectUri, codeChallenge));
+        return res.redirect(buildAuthorizeUrl(clientId, redirectUri, codeChallenge, state));
     } catch (err) {
         console.error('spotify login error:', err);
         return res.status(500).send('Unable to start Spotify login');
@@ -147,6 +149,11 @@ app.get('/auth/spotify/callback', async (req, res) => {
         const sessionId = await createUserSession(db, tokens, me?.id);
 
         res.clearCookie(PKCE_COOKIE);
+
+        if (req.query.state === 'mobile') {
+            return res.redirect(`${MOBILE_AUTH_DEEP_LINK}?session=${encodeURIComponent(sessionId)}`);
+        }
+
         res.cookie(SESSION_COOKIE, sessionId, {
             httpOnly: true,
             sameSite: 'lax',
@@ -163,7 +170,7 @@ app.get('/auth/spotify/callback', async (req, res) => {
 
 app.get('/auth/spotify/status', async (req, res) => {
     try {
-        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const sessionId = getSessionId(req, SESSION_COOKIE);
         const accessToken = await getValidAccessTokenForSession(db, sessionId);
         return res.status(200).json({ connected: !!accessToken });
     } catch (err) {
@@ -173,7 +180,7 @@ app.get('/auth/spotify/status', async (req, res) => {
 
 app.get('/generate/top-artists', async (req, res) => {
     try {
-        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const sessionId = getSessionId(req, SESSION_COOKIE);
         const accessToken = await getValidAccessTokenForSession(db, sessionId);
         if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
 
@@ -253,7 +260,7 @@ app.post('/generate/playlist', async (req, res) => {
     }
 
     try {
-        const sessionId = parseCookies(req)[SESSION_COOKIE];
+        const sessionId = getSessionId(req, SESSION_COOKIE);
         const accessToken = await getValidAccessTokenForSession(db, sessionId);
         if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
 
