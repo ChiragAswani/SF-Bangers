@@ -11,7 +11,7 @@ const {getFoopeeConcertRangesByDate, getArtistsForFoopeeWeek} = require("./src/f
 const {getSpotifyAccessTokenFromRefreshToken} = require("./src/generateSpotifyAccessToken");
 const {spotifyFetch, generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
-const {findSimilarArtists} = require("./src/findSimilarArtists");
+const {findSimilarArtists, findSimilarArtistsForGroup} = require("./src/findSimilarArtists");
 const {getTicketLinks} = require("./src/getTicketLinks");
 const {parseCookies, getSessionId} = require("./src/cookies");
 const {
@@ -71,11 +71,28 @@ app.get('/get-playlists', async (req, res) => {
 });
 
 app.get('/similar-artists', async (req, res) => {
+    const mode = ['blowing-up', 'hidden-gems'].includes(req.query.mode) ? req.query.mode : undefined;
+
+    // ?artists=a,b,c — one combined, deduped list across every seed artist,
+    // used by the mobile app so users aren't stuck browsing seed artists one at a time
+    if (typeof req.query.artists === 'string' && req.query.artists.trim()) {
+        const artistNames = req.query.artists.split(',').map((n) => n.trim()).filter(Boolean).slice(0, 10);
+        if (artistNames.length === 0) {
+            return res.status(400).send('Missing artists query parameter');
+        }
+        try {
+            const results = await findSimilarArtistsForGroup(db, credentials.ANTHROPIC_API_KEY, artistNames, { mode });
+            return res.status(200).json(results);
+        } catch (err) {
+            console.error('similar-artists (group) error:', err);
+            return res.status(500).json({ error: err?.message || String(err) });
+        }
+    }
+
+    // ?artist=x — single-artist lookup, used by the web Generate page
     if (!req.query || typeof req.query.artist !== 'string' || !req.query.artist.trim()) {
         return res.status(400).send('Missing artist query parameter');
     }
-
-    const mode = ['blowing-up', 'hidden-gems'].includes(req.query.mode) ? req.query.mode : undefined;
 
     try {
         const results = await findSimilarArtists(db, credentials.ANTHROPIC_API_KEY, req.query.artist.trim(), { mode });

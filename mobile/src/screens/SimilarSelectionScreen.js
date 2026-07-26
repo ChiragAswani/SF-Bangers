@@ -1,17 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import ModeToggle from '../components/ModeToggle';
-import ArtistGroup from '../components/ArtistGroup';
-import { PrimaryButton } from '../components/Buttons';
+import SimilarArtistCard from '../components/SimilarArtistCard';
+import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, spacing } from '../theme';
 import { api } from '../api';
 
+const TICKET_CHUNK_SIZE = 8;
+
 export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
-  const [expandedId, setExpandedId] = useState(null);
-  const [similarByTopArtistId, setSimilarByTopArtistId] = useState({});
-  const [selections, setSelections] = useState({});
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selections, setSelections] = useState(new Set());
   // hidden gems is the house style — surfacing low-key acts over the obvious picks
   const [discoveryMode, setDiscoveryMode] = useState('hidden-gems');
 
@@ -37,141 +40,102 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
     setPlayingName(name);
   }
 
-  const playback = {
-    playingName,
-    playing: playerStatus.playing,
-    currentTime: playerStatus.currentTime,
-    duration: playerStatus.duration,
-    onToggle: togglePreview,
-  };
-
-  async function fetchTicketLinksForGroup(id, items) {
-    const events = items
-      .filter((item) => item.nextShow && item.nextShow.venue && item.nextShow.date)
-      .map((item) => ({ artist: item.name, venue: item.nextShow.venue, date: item.nextShow.date }));
+  async function fetchTicketLinks(results) {
+    const events = results
+      .filter((it) => it.nextShow && it.nextShow.venue && it.nextShow.date)
+      .map((it) => ({ artist: it.name, venue: it.nextShow.venue, date: it.nextShow.date }));
     if (events.length === 0) return;
 
-    function applyTicketInfo(infoByArtist) {
-      setSimilarByTopArtistId((prev) => {
-        const group = prev[id];
-        if (!group) return prev;
-        const updatedItems = group.items.map((it) => {
-          if (!it.nextShow) return it;
-          const info = infoByArtist.get(it.name);
-          return {
-            ...it,
-            nextShow: { ...it.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null },
-          };
-        });
-        return { ...prev, [id]: { ...group, items: updatedItems } };
-      });
+    const chunks = [];
+    for (let i = 0; i < events.length; i += TICKET_CHUNK_SIZE) {
+      chunks.push(events.slice(i, i + TICKET_CHUNK_SIZE));
     }
 
-    try {
-      const resp = await api.post('/ticket-links', { events });
-      applyTicketInfo(new Map((resp?.results || []).map((r) => [r.artist, r])));
-    } catch (e) {
-      applyTicketInfo(new Map());
-    }
-  }
-
-  function fetchPreviewsForGroup(id, items) {
-    const names = items.map((i) => i.name).join(',');
-    api
-      .get('/generate/artist-preview', { names })
-      .then((resp) => {
-        const previewMap = {};
-        (resp || []).forEach((r) => {
-          previewMap[r.name] = r;
-        });
-        setSimilarByTopArtistId((prev) => {
-          const group = prev[id];
-          if (!group) return prev;
-          return { ...prev, [id]: { ...group, previews: previewMap } };
-        });
+    const infoByArtist = new Map();
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        try {
+          const resp = await api.post('/ticket-links', { events: chunk });
+          (resp?.results || []).forEach((r) => infoByArtist.set(r.artist, r));
+        } catch (e) {
+          // leave these artists without an entry — handled as "no tickets found" below
+        }
       })
-      .catch(() => {});
+    );
+
+    setItems((prev) =>
+      prev.map((it) => {
+        if (!it.nextShow) return it;
+        const info = infoByArtist.get(it.name);
+        return { ...it, nextShow: { ...it.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null } };
+      })
+    );
   }
 
-  async function loadSimilarForGroup(topArtist, mode) {
-    const id = topArtist.id;
-    setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: true, error: '', items: [], images: {}, previews: {} } }));
-
+  async function loadResults(mode) {
+    setLoading(true);
+    setError('');
     try {
-      const items = (await api.get('/similar-artists', { artist: topArtist.name, mode })) || [];
+      const names = topArtists.map((a) => a.name).join(',');
+      const results = (await api.get('/similar-artists', { artists: names, mode })) || [];
+      setItems(results.map((r) => ({ ...r, image: null, preview: undefined })));
+      setLoading(false);
 
-      setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: false, error: '', items, images: {}, previews: {} } }));
+      if (results.length) {
+        const namesForExtras = results.map((r) => r.name).join(',');
 
-      if (items.length) {
-        const names = items.map((i) => i.name).join(',');
         api
-          .get('/generate/artist-images', { names })
+          .get('/generate/artist-images', { names: namesForExtras })
           .then((imgResp) => {
             const imageMap = {};
             (imgResp || []).forEach((r) => {
               if (r.image) imageMap[r.name] = r.image;
             });
-            setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { ...prev[id], images: imageMap } }));
+            setItems((prev) => prev.map((it) => (imageMap[it.name] ? { ...it, image: imageMap[it.name] } : it)));
           })
           .catch(() => {});
 
-        fetchPreviewsForGroup(id, items);
-        fetchTicketLinksForGroup(id, items);
+        api
+          .get('/generate/artist-preview', { names: namesForExtras })
+          .then((previewResp) => {
+            const previewMap = {};
+            (previewResp || []).forEach((r) => {
+              previewMap[r.name] = r;
+            });
+            setItems((prev) => prev.map((it) => ({ ...it, preview: previewMap[it.name] || null })));
+          })
+          .catch(() => {});
+
+        fetchTicketLinks(results);
       }
     } catch (e) {
-      setSimilarByTopArtistId((prev) => ({
-        ...prev,
-        [id]: { loading: false, error: "Couldn't load similar artists.", items: [], images: {}, previews: {} },
-      }));
+      setError("Couldn't load similar artists. Please try again.");
+      setLoading(false);
     }
   }
 
-  function toggleExpanded(topArtist) {
-    const id = topArtist.id;
-    if (expandedId === id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(id);
-    if (similarByTopArtistId[id]) return; // already loaded/loading
-    loadSimilarForGroup(topArtist, discoveryMode);
-  }
-
-  // the search flow hands us exactly one seed artist — skip the extra tap
-  // and open it immediately instead of making the user expand a lone group
   useEffect(() => {
-    if (topArtists.length === 1) {
-      toggleExpanded(topArtists[0]);
-    }
+    loadResults(discoveryMode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onDiscoveryModeChange(mode) {
     if (mode === discoveryMode) return;
     setDiscoveryMode(mode);
-    // rankings depend on mode — drop cached results so re-opening a group re-fetches;
-    // selections are kept since they refer to artist names, not to the cached list
-    setSimilarByTopArtistId({});
-    if (expandedId) {
-      const topArtist = topArtists.find((a) => a.id === expandedId);
-      if (topArtist) loadSimilarForGroup(topArtist, mode);
-    }
+    // selections are kept since they refer to artist names, not this list
+    loadResults(mode);
   }
 
-  function toggleSelection(topArtistId, name) {
+  function toggleSelection(name) {
     setSelections((prev) => {
-      const current = new Set(prev[topArtistId] || []);
-      if (current.has(name)) current.delete(name);
-      else current.add(name);
-      return { ...prev, [topArtistId]: current };
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
     });
   }
 
-  const allSelectedArtists = useMemo(() => {
-    const set = new Set();
-    Object.values(selections).forEach((s) => s.forEach((name) => set.add(name)));
-    return [...set];
-  }, [selections]);
+  const selectedArtists = [...selections];
 
   return (
     <View style={styles.stage}>
@@ -181,33 +145,57 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
       </Pressable>
 
       <Text style={styles.eyebrow}>Discover</Text>
-      <Text style={styles.title}>Tap an artist to find similar SF shows</Text>
+      <Text style={styles.title}>Similar artists playing in SF</Text>
       <Text style={styles.subhero}>
         Listen to a preview right here, then pick who you want to see and grab tickets.
       </Text>
 
       <ModeToggle mode={discoveryMode} onChange={onDiscoveryModeChange} />
 
-      <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {topArtists.map((topArtist) => (
-          <ArtistGroup
-            key={topArtist.id}
-            topArtist={topArtist}
-            isOpen={expandedId === topArtist.id}
-            group={similarByTopArtistId[topArtist.id]}
-            selectedNames={selections[topArtist.id]}
-            playback={playback}
-            onToggleOpen={() => toggleExpanded(topArtist)}
-            onToggleSelect={(name) => toggleSelection(topArtist.id, name)}
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+          <GhostButton
+            label="Try again"
+            onPress={() => loadResults(discoveryMode)}
+            icon={<Ionicons name="refresh" size={16} color={colors.ink} />}
           />
-        ))}
-      </ScrollView>
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.mutedText}>No similar artists found.</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          {items.map((item) => {
+            const isActive = playingName === item.name;
+            return (
+              <SimilarArtistCard
+                key={item.name}
+                item={item}
+                image={item.image}
+                preview={item.preview}
+                selected={selections.has(item.name)}
+                isActive={isActive}
+                isPlaying={isActive && playerStatus.playing}
+                progress={isActive && playerStatus.duration ? playerStatus.currentTime / playerStatus.duration : 0}
+                onToggle={() => toggleSelection(item.name)}
+                onTogglePlay={() => togglePreview(item.name, item.preview?.previewUrl)}
+              />
+            );
+          })}
+        </ScrollView>
+      )}
 
       <View style={styles.actions}>
         <PrimaryButton
-          label={`Review (${allSelectedArtists.length} selected)`}
-          disabled={allSelectedArtists.length === 0}
-          onPress={() => onNext(allSelectedArtists)}
+          label={`Review (${selectedArtists.length} selected)`}
+          disabled={selectedArtists.length === 0}
+          onPress={() => onNext(selectedArtists)}
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
         />
       </View>
@@ -235,6 +223,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     lineHeight: 18,
   },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  errorText: { color: colors.danger, fontFamily: fonts.bodyMedium, textAlign: 'center' },
+  mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium },
   list: { flex: 1 },
   listContent: { paddingBottom: spacing.lg },
   actions: { alignItems: 'center', paddingVertical: spacing.md },

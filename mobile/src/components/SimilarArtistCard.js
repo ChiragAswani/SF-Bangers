@@ -101,6 +101,15 @@ export default function SimilarArtistCard({ item, image, preview, selected, isAc
         </View>
       </View>
 
+      {item.matchedSeed ? (
+        <View style={[styles.seedTag, { backgroundColor: `${trim.bg}18` }]}>
+          <Ionicons name="sparkles" size={11} color={trim.bg} />
+          <Text style={[styles.seedTagText, { color: trim.bg }]} numberOfLines={1}>
+            Similar to {item.matchedSeed}
+          </Text>
+        </View>
+      ) : null}
+
       {typeof item.score === 'number' && (
         <View style={styles.scoreBarTrack}>
           <View style={[styles.scoreBarFill, { width: `${item.score}%`, backgroundColor: trim.bg }]} />
@@ -190,6 +199,16 @@ const styles = StyleSheet.create({
   headline: { flex: 1, gap: 2 },
   name: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 14 },
   score: { fontFamily: fonts.bodyBold, fontSize: 11 },
+  seedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    borderRadius: radii.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  seedTagText: { fontFamily: fonts.bodySemibold, fontSize: 10 },
   scoreBarTrack: {
     height: 4,
     borderRadius: 2,

@@ -31,6 +31,41 @@ const SIMILAR_ARTISTS_SCHEMA = {
     additionalProperties: false,
 };
 
+const SIMILAR_ARTISTS_GROUP_SCHEMA = {
+    type: "object",
+    properties: {
+        similarArtists: {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    name: {
+                        type: "string",
+                        description: "Exact artist name as it appears in the candidate list",
+                    },
+                    matchedSeed: {
+                        type: "string",
+                        description: "Which one of the user's selected artists this pick most closely resembles",
+                    },
+                    reason: {
+                        type: "string",
+                        description: "One short sentence on why this artist is musically similar to the matchedSeed",
+                    },
+                    score: {
+                        type: "integer",
+                        description:
+                            "Similarity score from 0-100, where 100 is nearly identical in sound/genre/style and 0 is unrelated",
+                    },
+                },
+                required: ["name", "matchedSeed", "reason", "score"],
+                additionalProperties: false,
+            },
+        },
+    },
+    required: ["similarArtists"],
+    additionalProperties: false,
+};
+
 async function getArtistCandidates(db, collectionName) {
     const snap = await db.collection(collectionName).select("name", "shows").get();
     const map = new Map();
@@ -57,7 +92,7 @@ const DISCOVERY_MODE_INSTRUCTIONS = {
 };
 
 async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
-    const { collectionName = "foopeeArtists", model = "claude-opus-4-8", mode } = opts;
+    const { collectionName = "foopeeArtists", model = "claude-sonnet-5", mode } = opts;
 
     const candidatesMap = await getArtistCandidates(db, collectionName);
     const candidates = [...candidatesMap.keys()];
@@ -67,11 +102,14 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
 
     const modeInstruction = DISCOVERY_MODE_INSTRUCTIONS[mode] || "";
 
+    // This is a bounded classification/matching task, not deep multi-step
+    // reasoning — extended thinking on a large candidate list was the main
+    // source of ~30s latency, so it's disabled here in favor of low effort.
     const response = await anthropic.messages.create({
         model,
         max_tokens: 4096,
-        thinking: { type: "adaptive" },
-        output_config: { format: { type: "json_schema", schema: SIMILAR_ARTISTS_SCHEMA } },
+        thinking: { type: "disabled" },
+        output_config: { format: { type: "json_schema", schema: SIMILAR_ARTISTS_SCHEMA }, effort: "low" },
         messages: [
             {
                 role: "user",
@@ -125,4 +163,90 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
         });
 }
 
-module.exports = { findSimilarArtists };
+// One combined, deduped discovery list across every artist the user picked —
+// used instead of calling findSimilarArtists once per seed artist, which
+// forced a "drill into each one separately" UI. Each pick is tagged with
+// whichever seed artist it best matches so the UI can still show "why".
+async function findSimilarArtistsForGroup(db, apiKey, artistNames, opts = {}) {
+    const { collectionName = "foopeeArtists", model = "claude-sonnet-5", mode, limit = 12 } = opts;
+
+    const candidatesMap = await getArtistCandidates(db, collectionName);
+    const seedNamesLower = new Set(artistNames.map((n) => n.toLowerCase()));
+    for (const name of candidatesMap.keys()) {
+        if (seedNamesLower.has(name.toLowerCase())) candidatesMap.delete(name);
+    }
+    const candidates = [...candidatesMap.keys()];
+    if (candidates.length === 0) return [];
+
+    const anthropic = new Anthropic({ apiKey });
+
+    const modeInstruction = DISCOVERY_MODE_INSTRUCTIONS[mode] || "";
+    const pickCount = Math.min(limit, candidates.length);
+
+    // Same latency fix as the single-artist version above — this is a
+    // matching/ranking task over a fixed candidate list, not something that
+    // benefits from extended thinking.
+    const response = await anthropic.messages.create({
+        model,
+        max_tokens: 4096,
+        thinking: { type: "disabled" },
+        output_config: { format: { type: "json_schema", schema: SIMILAR_ARTISTS_GROUP_SCHEMA }, effort: "low" },
+        messages: [
+            {
+                role: "user",
+                content:
+                    `Here is a list of artists with upcoming shows in the San Francisco Bay Area:\n\n` +
+                    `${candidates.join(", ")}\n\n` +
+                    `The user picked these favorite artists: ${artistNames.join(", ")}.\n\n` +
+                    `From the candidate list ONLY, pick up to ${pickCount} DISTINCT artists most musically similar to ` +
+                    `this group of favorites overall. Spread picks across the different favorites rather than only ` +
+                    `matching the single most dominant style — every favorite that has a good match in the candidate ` +
+                    `list should be represented. For each pick, note which one favorite artist (matchedSeed) it most ` +
+                    `closely resembles, plus a similarity score from 0-100 (100 = nearly identical in sound/genre/style, ` +
+                    `0 = unrelated) reflecting your honest assessment rather than spreading scores evenly. ` +
+                    `${modeInstruction} ` +
+                    `Only return artist names that appear verbatim in the list above, and never list the same artist more than once.`,
+            },
+        ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock) return [];
+
+    const parsed = JSON.parse(textBlock.text);
+
+    const dedupedByName = new Map();
+    for (const a of parsed.similarArtists || []) {
+        if (!a || !candidatesMap.has(a.name)) continue;
+        const existing = dedupedByName.get(a.name);
+        if (!existing || (a.score || 0) > (existing.score || 0)) {
+            dedupedByName.set(a.name, a);
+        }
+    }
+
+    return [...dedupedByName.values()]
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .slice(0, pickCount)
+        .map((a) => {
+            const shows = candidatesMap.get(a.name) || [];
+            const nextShow = earliestShow(shows);
+
+            return {
+                name: a.name,
+                matchedSeed: a.matchedSeed || null,
+                reason: a.reason,
+                score: Math.max(0, Math.min(100, Math.round(a.score || 0))),
+                showCount: shows.length,
+                nextShow: nextShow
+                    ? {
+                          date: nextShow.date || null,
+                          dayOfWeek: nextShow.dayOfWeek || null,
+                          venue: nextShow.venue || null,
+                          details: nextShow.details || null,
+                      }
+                    : null,
+            };
+        });
+}
+
+module.exports = { findSimilarArtists, findSimilarArtistsForGroup };
