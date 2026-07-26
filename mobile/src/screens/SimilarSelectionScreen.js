@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import ModeToggle from '../components/ModeToggle';
 import SimilarArtistCard from '../components/SimilarArtistCard';
+import DiscoveryLoader from '../components/DiscoveryLoader';
 import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, spacing } from '../theme';
 import { api } from '../api';
@@ -137,6 +138,18 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 
   const selectedArtists = [...selections];
 
+  if (loading) {
+    return (
+      <View style={styles.stage}>
+        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
+          <Ionicons name="chevron-back" size={16} color={colors.ink} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+        <DiscoveryLoader />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.stage}>
       <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
@@ -152,11 +165,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 
       <ModeToggle mode={discoveryMode} onChange={onDiscoveryModeChange} />
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : error ? (
+      {error ? (
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
           <GhostButton
