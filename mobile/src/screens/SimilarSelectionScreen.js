@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import ModeToggle from '../components/ModeToggle';
 import ArtistGroup from '../components/ArtistGroup';
 import { PrimaryButton } from '../components/Buttons';
@@ -13,6 +14,36 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
   const [selections, setSelections] = useState({});
   // hidden gems is the house style — surfacing low-key acts over the obvious picks
   const [discoveryMode, setDiscoveryMode] = useState('hidden-gems');
+
+  // one shared player for the whole screen so starting a new preview always
+  // stops whatever was playing before — never two clips at once
+  const player = useAudioPlayer(null, { updateInterval: 200 });
+  const playerStatus = useAudioPlayerStatus(player);
+  const [playingName, setPlayingName] = useState(null);
+
+  useEffect(() => {
+    if (playerStatus.didJustFinish) setPlayingName(null);
+  }, [playerStatus.didJustFinish]);
+
+  function togglePreview(name, previewUrl) {
+    if (!previewUrl) return;
+    if (playingName === name) {
+      if (playerStatus.playing) player.pause();
+      else player.play();
+      return;
+    }
+    player.replace(previewUrl);
+    player.play();
+    setPlayingName(name);
+  }
+
+  const playback = {
+    playingName,
+    playing: playerStatus.playing,
+    currentTime: playerStatus.currentTime,
+    duration: playerStatus.duration,
+    onToggle: togglePreview,
+  };
 
   async function fetchTicketLinksForGroup(id, items) {
     const events = items
@@ -44,14 +75,32 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
     }
   }
 
+  function fetchPreviewsForGroup(id, items) {
+    const names = items.map((i) => i.name).join(',');
+    api
+      .get('/generate/artist-preview', { names })
+      .then((resp) => {
+        const previewMap = {};
+        (resp || []).forEach((r) => {
+          previewMap[r.name] = r;
+        });
+        setSimilarByTopArtistId((prev) => {
+          const group = prev[id];
+          if (!group) return prev;
+          return { ...prev, [id]: { ...group, previews: previewMap } };
+        });
+      })
+      .catch(() => {});
+  }
+
   async function loadSimilarForGroup(topArtist, mode) {
     const id = topArtist.id;
-    setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: true, error: '', items: [], images: {} } }));
+    setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: true, error: '', items: [], images: {}, previews: {} } }));
 
     try {
       const items = (await api.get('/similar-artists', { artist: topArtist.name, mode })) || [];
 
-      setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: false, error: '', items, images: {} } }));
+      setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: false, error: '', items, images: {}, previews: {} } }));
 
       if (items.length) {
         const names = items.map((i) => i.name).join(',');
@@ -66,12 +115,13 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
           })
           .catch(() => {});
 
+        fetchPreviewsForGroup(id, items);
         fetchTicketLinksForGroup(id, items);
       }
     } catch (e) {
       setSimilarByTopArtistId((prev) => ({
         ...prev,
-        [id]: { loading: false, error: "Couldn't load similar artists.", items: [], images: {} },
+        [id]: { loading: false, error: "Couldn't load similar artists.", items: [], images: {}, previews: {} },
       }));
     }
   }
@@ -133,7 +183,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
       <Text style={styles.eyebrow}>Discover</Text>
       <Text style={styles.title}>Tap an artist to find similar SF shows</Text>
       <Text style={styles.subhero}>
-        Pick as many as you want from each group — they'll all end up in your playlist.
+        Listen to a preview right here, then pick who you want to see and grab tickets.
       </Text>
 
       <ModeToggle mode={discoveryMode} onChange={onDiscoveryModeChange} />
@@ -146,6 +196,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
             isOpen={expandedId === topArtist.id}
             group={similarByTopArtistId[topArtist.id]}
             selectedNames={selections[topArtist.id]}
+            playback={playback}
             onToggleOpen={() => toggleExpanded(topArtist)}
             onToggleSelect={(name) => toggleSelection(topArtist.id, name)}
           />

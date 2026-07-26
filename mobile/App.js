@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { setAudioModeAsync } from 'expo-audio';
 import { useFonts as useFredoka, Fredoka_600SemiBold, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
 import {
   useFonts as useQuicksand,
@@ -63,6 +64,12 @@ export default function App() {
     if (Platform.OS !== 'android') return;
     NavigationBar.setBackgroundColorAsync(colors.bg).catch(() => {});
     NavigationBar.setButtonStyleAsync('dark').catch(() => {});
+  }, []);
+
+  // let song previews play even if the phone's silent switch is on — this is
+  // a deliberate "listen before you decide" feature, not background music
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
   // Land on the right first screen once we know whether a saved Spotify

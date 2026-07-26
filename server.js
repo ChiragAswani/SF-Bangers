@@ -249,6 +249,45 @@ app.get('/generate/artist-images', async (req, res) => {
     }
 });
 
+// 30-second preview clips so the app can play a taste of an artist natively
+// instead of sending the user to Spotify. Spotify deprecated preview_url for
+// third-party API access in late 2024 (it's null for everyone now, regardless
+// of token type), so this sources clips from Apple's public, unauthenticated
+// iTunes Search API instead — the caller still needs to handle previewUrl
+// coming back null for tracks Apple doesn't have either.
+app.get('/generate/artist-preview', async (req, res) => {
+    const namesParam = req.query.names;
+    if (typeof namesParam !== 'string' || !namesParam.trim()) {
+        return res.status(400).json({ error: 'Missing names query parameter' });
+    }
+    const names = namesParam.split(',').map((n) => n.trim()).filter(Boolean).slice(0, 15);
+
+    try {
+        const results = await Promise.all(
+            names.map(async (name) => {
+                try {
+                    const term = encodeURIComponent(name);
+                    const itunesRes = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=1`);
+                    const data = await itunesRes.json();
+                    const track = data?.results?.[0];
+                    return {
+                        name,
+                        trackName: track?.trackName || null,
+                        previewUrl: track?.previewUrl || null,
+                        albumArt: track?.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '600x600bb') : null,
+                    };
+                } catch (e) {
+                    return { name, trackName: null, previewUrl: null, albumArt: null };
+                }
+            })
+        );
+        return res.status(200).json(results);
+    } catch (err) {
+        console.error('artist-preview error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
 app.post('/generate/playlist', async (req, res) => {
     const artists = req.body?.artists;
     if (!Array.isArray(artists) || artists.length === 0) {

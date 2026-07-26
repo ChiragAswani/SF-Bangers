@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, houseColorForName, radii, spacing } from '../theme';
 
@@ -43,7 +43,7 @@ export default function ReviewScreen({
             label="Generate Playlist"
             onPress={onGenerate}
             loading={generating}
-            icon={<Ionicons name="logo-spotify" size={16} color={colors.primaryInk} />}
+            icon={<FontAwesome name="spotify" size={16} color={colors.primaryInk} />}
           />
         ) : (
           <>
@@ -51,7 +51,7 @@ export default function ReviewScreen({
               label="Connect Spotify to Save"
               onPress={onConnectAndGenerate}
               loading={generating}
-              icon={<Ionicons name="logo-spotify" size={16} color={colors.primaryInk} />}
+              icon={<FontAwesome name="spotify" size={16} color={colors.primaryInk} />}
             />
             <GhostButton label="Skip — just show me tickets" onPress={onSkip} disabled={generating} />
           </>

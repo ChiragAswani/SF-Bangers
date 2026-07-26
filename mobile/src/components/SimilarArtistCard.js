@@ -15,7 +15,57 @@ function formatShowDate(show) {
   }
 }
 
-export default function SimilarArtistCard({ item, image, selected, onToggle }) {
+function PreviewControl({ preview, isActive, isPlaying, progress, onTogglePlay, trim }) {
+  // previews aren't fetched yet — leave the row's height reserved so the
+  // card doesn't jump once they load in
+  if (preview === undefined) {
+    return <View style={styles.previewRow} />;
+  }
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    onTogglePlay();
+  };
+
+  if (!preview?.previewUrl) {
+    return (
+      <View style={styles.previewRow}>
+        <View style={[styles.playBtn, styles.playBtnDisabled]}>
+          <Ionicons name="musical-notes" size={13} color={colors.muted2} />
+        </View>
+        <Text style={styles.previewMuted}>No preview available</Text>
+      </View>
+    );
+  }
+
+  return (
+    <Pressable onPress={handlePress} style={styles.previewRow} hitSlop={6}>
+      <View style={[styles.playBtn, { backgroundColor: trim.bg }]}>
+        <Ionicons
+          name={isActive && isPlaying ? 'pause' : 'play'}
+          size={14}
+          color={trim.on}
+          style={!(isActive && isPlaying) ? styles.playIconOffset : null}
+        />
+      </View>
+      <View style={styles.previewTextCol}>
+        <Text style={styles.previewTrackName} numberOfLines={1}>
+          {preview.trackName || 'Preview a track'}
+        </Text>
+        <View style={styles.previewBarTrack}>
+          <View
+            style={[
+              styles.previewBarFill,
+              { width: `${isActive ? Math.min(100, Math.max(0, progress * 100)) : 0}%`, backgroundColor: trim.bg },
+            ]}
+          />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+export default function SimilarArtistCard({ item, image, preview, selected, isActive, isPlaying, progress, onToggle, onTogglePlay }) {
   const trim = houseColorForName(item.name);
 
   const handlePress = () => {
@@ -56,6 +106,15 @@ export default function SimilarArtistCard({ item, image, selected, onToggle }) {
           <View style={[styles.scoreBarFill, { width: `${item.score}%`, backgroundColor: trim.bg }]} />
         </View>
       )}
+
+      <PreviewControl
+        preview={preview}
+        isActive={isActive}
+        isPlaying={isPlaying}
+        progress={progress}
+        onTogglePlay={onTogglePlay}
+        trim={trim}
+      />
 
       {item.reason ? (
         <Text style={styles.reason} numberOfLines={2}>
@@ -112,7 +171,7 @@ export default function SimilarArtistCard({ item, image, selected, onToggle }) {
 
 const styles = StyleSheet.create({
   card: {
-    width: '48%',
+    width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     padding: spacing.sm,
@@ -129,7 +188,7 @@ const styles = StyleSheet.create({
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headline: { flex: 1, gap: 2 },
-  name: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 13 },
+  name: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 14 },
   score: { fontFamily: fonts.bodyBold, fontSize: 11 },
   scoreBarTrack: {
     height: 4,
@@ -140,11 +199,40 @@ const styles = StyleSheet.create({
   scoreBarFill: {
     height: 4,
   },
-  reason: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 11, lineHeight: 15 },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 34,
+  },
+  playBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playBtnDisabled: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  playIconOffset: {
+    marginLeft: 2,
+  },
+  previewTextCol: { flex: 1, gap: 4 },
+  previewTrackName: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 12 },
+  previewBarTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.surfaceAlt,
+    overflow: 'hidden',
+  },
+  previewBarFill: { height: 3 },
+  previewMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 12 },
+  reason: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
   showBlock: { gap: 3, marginTop: 2 },
   showRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  showText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 11, flexShrink: 1 },
-  showTextMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 11 },
-  ticketText: { fontFamily: fonts.bodyBold, fontSize: 11 },
+  showText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12, flexShrink: 1 },
+  showTextMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 12 },
+  ticketText: { fontFamily: fonts.bodyBold, fontSize: 12 },
   moreShows: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 10, marginTop: 1 },
 });

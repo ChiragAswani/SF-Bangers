@@ -7,7 +7,7 @@ import ArtistAvatar from './ArtistAvatar';
 import SimilarArtistCard from './SimilarArtistCard';
 import { colors, fonts, houseColorForName, radii, spacing } from '../theme';
 
-export default function ArtistGroup({ topArtist, isOpen, group, selectedNames, onToggleOpen, onToggleSelect }) {
+export default function ArtistGroup({ topArtist, isOpen, group, selectedNames, playback, onToggleOpen, onToggleSelect }) {
   const handleHeaderPress = () => {
     Haptics.selectionAsync().catch(() => {});
     onToggleOpen();
@@ -45,15 +45,23 @@ export default function ArtistGroup({ topArtist, isOpen, group, selectedNames, o
             <Text style={styles.errorText}>{group.error}</Text>
           ) : group?.items?.length ? (
             <View style={styles.similarList}>
-              {group.items.map((item) => (
-                <SimilarArtistCard
-                  key={item.name}
-                  item={item}
-                  image={group.images?.[item.name]}
-                  selected={selectedNames?.has(item.name)}
-                  onToggle={() => onToggleSelect(item.name)}
-                />
-              ))}
+              {group.items.map((item) => {
+                const isActive = playback?.playingName === item.name;
+                return (
+                  <SimilarArtistCard
+                    key={item.name}
+                    item={item}
+                    image={group.images?.[item.name]}
+                    preview={group.previews?.[item.name]}
+                    selected={selectedNames?.has(item.name)}
+                    isActive={isActive}
+                    isPlaying={isActive && !!playback?.playing}
+                    progress={isActive && playback?.duration ? playback.currentTime / playback.duration : 0}
+                    onToggle={() => onToggleSelect(item.name)}
+                    onTogglePlay={() => playback?.onToggle(item.name, group.previews?.[item.name]?.previewUrl)}
+                  />
+                );
+              })}
             </View>
           ) : (
             <Text style={styles.mutedText}>No similar artists found.</Text>
@@ -97,5 +105,5 @@ const styles = StyleSheet.create({
   center: { paddingVertical: spacing.lg, alignItems: 'center' },
   errorText: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 12 },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12 },
-  similarList: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  similarList: { flexDirection: 'column' },
 });

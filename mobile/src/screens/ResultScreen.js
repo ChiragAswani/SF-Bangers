@@ -1,6 +1,6 @@
 import React from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import GlowBackground from '../components/GlowBackground';
 import { GhostButton, SpotifyButton } from '../components/Buttons';
@@ -35,7 +35,7 @@ export default function ResultScreen({ playlistId, onDone }) {
             <SpotifyButton
               label="Open in Spotify"
               onPress={() => openInSpotify(playlistId)}
-              icon={<Ionicons name="logo-spotify" size={18} color="#FFFFFF" />}
+              icon={<FontAwesome name="spotify" size={18} color="#FFFFFF" />}
             />
           ) : null}
           <GhostButton label="Done" onPress={onDone} />

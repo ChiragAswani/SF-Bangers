@@ -1,24 +1,25 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import ArtistCard from '../components/ArtistCard';
 import { GhostButton, PrimaryButton, SpotifyButton } from '../components/Buttons';
 import { colors, fonts, radii, spacing } from '../theme';
 import { api } from '../api';
 
-const SPOTIFY_BATCH_SIZE = 6;
+const CANDIDATE_COUNT = 6;
 
-// picks `count` artists from the pool the user hasn't seen yet; once the pool
-// is exhausted it resets so shuffling never just dead-ends
-function pickBatch(pool, shownIds, count = SPOTIFY_BATCH_SIZE) {
-  let candidates = pool.filter((a) => !shownIds.has(a.id));
+// picks `count` pool artists to browse, preferring ones not already added and
+// not recently shown; once those run out it resets so shuffling never dead-ends
+function pickCandidates(pool, excludeNamesLower, shownIds, count = CANDIDATE_COUNT) {
+  const available = pool.filter((a) => !excludeNamesLower.has(a.name.toLowerCase()));
+  let fresh = available.filter((a) => !shownIds.has(a.id));
   let resetting = false;
-  if (candidates.length < count) {
-    candidates = pool;
+  if (fresh.length < count) {
+    fresh = available;
     resetting = true;
   }
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5).slice(0, count);
+  const shuffled = [...fresh].sort(() => Math.random() - 0.5).slice(0, count);
   return { batch: shuffled, resetting };
 }
 
@@ -32,14 +33,18 @@ export default function SeedArtistsScreen({
   onSpotifySessionExpired,
 }) {
   const [inputValue, setInputValue] = useState('');
-  const [manualArtists, setManualArtists] = useState([]);
+  // the one running list — populated by manual search AND by tapping a
+  // Spotify suggestion, so both paths feel like the same kind of "pick"
+  const [addedArtists, setAddedArtists] = useState([]);
 
   const [pool, setPool] = useState([]);
   const [poolLoading, setPoolLoading] = useState(false);
   const [poolError, setPoolError] = useState('');
-  const [spotifyBatch, setSpotifyBatch] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const shownIds = useRef(new Set());
   const poolFetchedRef = useRef(false);
+
+  const addedNamesLower = useMemo(() => new Set(addedArtists.map((a) => a.name.toLowerCase())), [addedArtists]);
 
   useEffect(() => {
     if (spotifyConnected && !poolFetchedRef.current) {
@@ -49,7 +54,7 @@ export default function SeedArtistsScreen({
     if (!spotifyConnected) {
       poolFetchedRef.current = false;
       setPool([]);
-      setSpotifyBatch([]);
+      setCandidates([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spotifyConnected]);
@@ -61,8 +66,8 @@ export default function SeedArtistsScreen({
       const resp = await api.get('/generate/top-artists');
       const artists = resp?.artists || [];
       setPool(artists);
-      const { batch } = pickBatch(artists, new Set());
-      setSpotifyBatch(batch);
+      const { batch } = pickCandidates(artists, addedNamesLower, new Set());
+      setCandidates(batch);
       shownIds.current = new Set(batch.map((a) => a.id));
     } catch (e) {
       if (e.status === 401) {
@@ -78,49 +83,65 @@ export default function SeedArtistsScreen({
   function onShuffle() {
     if (!pool.length) return;
     Haptics.selectionAsync().catch(() => {});
-    const { batch, resetting } = pickBatch(pool, shownIds.current);
-    setSpotifyBatch(batch);
+    const { batch, resetting } = pickCandidates(pool, addedNamesLower, shownIds.current);
+    setCandidates(batch);
     shownIds.current = resetting
       ? new Set(batch.map((a) => a.id))
       : new Set([...shownIds.current, ...batch.map((a) => a.id)]);
+  }
+
+  function addArtist(artist) {
+    setAddedArtists((prev) => {
+      if (prev.some((a) => a.name.toLowerCase() === artist.name.toLowerCase())) return prev;
+      return [...prev, artist];
+    });
+  }
+
+  function removeAdded(id) {
+    setAddedArtists((prev) => prev.filter((a) => a.id !== id));
   }
 
   async function addManual() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
     setInputValue('');
-
-    const exists = manualArtists.some((a) => a.name.toLowerCase() === trimmed.toLowerCase());
-    if (exists) return;
+    if (addedNamesLower.has(trimmed.toLowerCase())) return;
 
     Haptics.selectionAsync().catch(() => {});
     const id = `search:${trimmed}`;
-    setManualArtists((prev) => [...prev, { id, name: trimmed, images: [] }]);
+    addArtist({ id, name: trimmed, images: [] });
+    // if this name is currently sitting in the Spotify suggestions, drop it
+    // from there so it isn't offered twice
+    setCandidates((prev) => prev.filter((a) => a.name.toLowerCase() !== trimmed.toLowerCase()));
 
     try {
       const resp = await api.get('/generate/artist-images', { names: trimmed });
       const image = resp?.[0]?.image;
       if (image) {
-        setManualArtists((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, images: [{ url: image }] } : a))
-        );
+        setAddedArtists((prev) => prev.map((a) => (a.id === id ? { ...a, images: [{ url: image }] } : a)));
       }
     } catch (e) {
       // no image found — the avatar's initial-letter fallback covers it
     }
   }
 
-  function removeManual(id) {
-    setManualArtists((prev) => prev.filter((a) => a.id !== id));
+  // tapping a suggestion moves it straight into Your Artists, then pulls in
+  // one replacement so the browse grid stays full
+  function pickCandidate(artist) {
+    addArtist(artist);
+    setCandidates((prev) => {
+      const remaining = prev.filter((a) => a.id !== artist.id);
+      const usedNames = new Set([...addedNamesLower, artist.name.toLowerCase(), ...remaining.map((a) => a.name.toLowerCase())]);
+      const replacement =
+        pool.find((a) => !usedNames.has(a.name.toLowerCase()) && !shownIds.current.has(a.id)) ||
+        pool.find((a) => !usedNames.has(a.name.toLowerCase()));
+      if (replacement) {
+        shownIds.current.add(replacement.id);
+        return [...remaining, replacement];
+      }
+      return remaining;
+    });
   }
-
-  // the combined seed list Next hands off — manual entries plus whichever
-  // Spotify artists are currently shuffled into view, deduped by name
-  const combinedArtists = useMemo(() => {
-    const spotifyLowerNames = new Set(spotifyConnected ? spotifyBatch.map((a) => a.name.toLowerCase()) : []);
-    const manual = manualArtists.filter((a) => !spotifyLowerNames.has(a.name.toLowerCase()));
-    return [...manual, ...(spotifyConnected ? spotifyBatch : [])];
-  }, [manualArtists, spotifyBatch, spotifyConnected]);
 
   return (
     <View style={styles.stage}>
@@ -132,7 +153,7 @@ export default function SeedArtistsScreen({
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.eyebrow}>Your Artists</Text>
         <Text style={styles.title}>Who do you want similar shows for?</Text>
-        <Text style={styles.subhero}>Search as many as you like, or pull in your Spotify favorites below.</Text>
+        <Text style={styles.subhero}>Search as many as you like, or tap in favorites from your Spotify below.</Text>
 
         <View style={styles.inputWrap}>
           <Ionicons name="search" size={18} color={colors.muted} />
@@ -152,10 +173,10 @@ export default function SeedArtistsScreen({
           </Pressable>
         </View>
 
-        {manualArtists.length > 0 && (
-          <View style={[styles.grid, styles.manualGrid]}>
-            {manualArtists.map((artist, idx) => (
-              <ArtistCard key={artist.id} artist={artist} index={idx} onRemove={() => removeManual(artist.id)} />
+        {addedArtists.length > 0 && (
+          <View style={[styles.grid, styles.addedGrid]}>
+            {addedArtists.map((artist, idx) => (
+              <ArtistCard key={artist.id} artist={artist} index={idx} onRemove={() => removeAdded(artist.id)} />
             ))}
           </View>
         )}
@@ -164,9 +185,9 @@ export default function SeedArtistsScreen({
 
         <View style={styles.spotifySection}>
           <View style={styles.spotifyHeader}>
-            <Ionicons name="logo-spotify" size={18} color={colors.spotify} />
+            <FontAwesome name="spotify" size={18} color={colors.spotify} />
             <Text style={styles.spotifyHeaderText}>
-              {spotifyConnected ? 'From your Spotify' : 'Or pull from Spotify'}
+              {spotifyConnected ? 'Tap to add from your Spotify' : 'Or pull from Spotify'}
             </Text>
           </View>
 
@@ -176,7 +197,7 @@ export default function SeedArtistsScreen({
                 label="Connect Spotify"
                 onPress={onConnectSpotify}
                 loading={connecting}
-                icon={<Ionicons name="logo-spotify" size={16} color="#FFFFFF" />}
+                icon={<FontAwesome name="spotify" size={16} color="#FFFFFF" />}
               />
               {authError ? <Text style={styles.error}>{authError}</Text> : null}
             </View>
@@ -186,11 +207,13 @@ export default function SeedArtistsScreen({
             </View>
           ) : poolError ? (
             <Text style={styles.error}>{poolError}</Text>
+          ) : candidates.length === 0 ? (
+            <Text style={styles.mutedText}>You've added all your top artists!</Text>
           ) : (
             <>
               <View style={styles.grid}>
-                {spotifyBatch.map((artist, idx) => (
-                  <ArtistCard key={artist.id} artist={artist} index={idx} />
+                {candidates.map((artist, idx) => (
+                  <ArtistCard key={artist.id} artist={artist} index={idx} onAdd={() => pickCandidate(artist)} />
                 ))}
               </View>
               <GhostButton
@@ -205,9 +228,9 @@ export default function SeedArtistsScreen({
 
       <View style={styles.actions}>
         <PrimaryButton
-          label={combinedArtists.length > 0 ? `Next (${combinedArtists.length})` : 'Add an artist to continue'}
-          disabled={combinedArtists.length === 0}
-          onPress={() => onNext(combinedArtists)}
+          label={addedArtists.length > 0 ? `Next (${addedArtists.length})` : 'Add an artist to continue'}
+          disabled={addedArtists.length === 0}
+          onPress={() => onNext(addedArtists)}
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
         />
       </View>
@@ -253,7 +276,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemibold,
     fontSize: 16,
   },
-  manualGrid: { marginTop: spacing.md },
+  addedGrid: { marginTop: spacing.md },
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
@@ -266,5 +289,6 @@ const styles = StyleSheet.create({
   poolLoading: { paddingVertical: spacing.lg, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   error: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 13 },
+  mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 13 },
   actions: { alignItems: 'center', paddingVertical: spacing.md },
 });
