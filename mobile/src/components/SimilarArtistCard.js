@@ -4,16 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import ArtistAvatar from './ArtistAvatar';
 import { colors, fonts, houseColorForName, radii, spacing } from '../theme';
-
-function formatShowDate(show) {
-  if (!show?.date) return show?.dayOfWeek || 'Date TBD';
-  try {
-    const d = new Date(`${show.date}T00:00:00`);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  } catch (e) {
-    return show.date;
-  }
-}
+import { formatShowDate } from '../utils/formatShowDate';
+import { ticketSearchUrl } from '../utils/ticketSearchUrl';
 
 function PreviewControl({ preview, isActive, isPlaying, progress, onTogglePlay, trim }) {
   // previews aren't fetched yet — leave the row's height reserved so the
@@ -75,7 +67,7 @@ export default function SimilarArtistCard({ item, image, preview, selected, isAc
 
   const handleTicketPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    Linking.openURL(item.nextShow.ticketLink).catch(() => {});
+    Linking.openURL(ticketSearchUrl(item.name)).catch(() => {});
   };
 
   return (
@@ -146,24 +138,12 @@ export default function SimilarArtistCard({ item, image, preview, selected, isAc
             </View>
           ) : null}
 
-          {item.nextShow.ticketLink ? (
-            <Pressable onPress={handleTicketPress} style={styles.showRow} hitSlop={6}>
-              <Ionicons name="link-outline" size={13} color={trim.bg} />
-              <Text style={[styles.ticketText, { color: trim.bg }]}>
-                Buy tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
-              </Text>
-            </Pressable>
-          ) : item.nextShow.ticketLink === undefined ? (
-            <View style={styles.showRow}>
-              <Ionicons name="hourglass-outline" size={13} color={colors.muted} />
-              <Text style={styles.showTextMuted}>Finding tickets…</Text>
-            </View>
-          ) : (
-            <View style={styles.showRow}>
-              <Ionicons name="close-circle-outline" size={13} color={colors.muted} />
-              <Text style={styles.showTextMuted}>No tickets found</Text>
-            </View>
-          )}
+          <Pressable onPress={handleTicketPress} style={styles.showRow} hitSlop={6}>
+            <Ionicons name="link-outline" size={13} color={trim.bg} />
+            <Text style={[styles.ticketText, { color: trim.bg }]}>
+              Find tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
+            </Text>
+          </Pressable>
 
           {item.showCount > 1 ? (
             <Text style={styles.moreShows}>

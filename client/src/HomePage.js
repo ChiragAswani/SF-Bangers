@@ -23,8 +23,6 @@ import {
     CalendarOutlined,
     EnvironmentOutlined,
     LinkOutlined,
-    LoadingOutlined,
-    StopOutlined,
     FireOutlined,
     CompassOutlined,
     ThunderboltOutlined,
@@ -43,6 +41,14 @@ function formatShowDate(show) {
     } catch (e) {
         return show.date;
     }
+}
+
+// A precise per-show ticket link needs a real ticketing API (on hold pending
+// SeatGeek approval — see src/getTicketLinks.js on the backend). Until then,
+// a Ticketmaster search for the artist's name is a deterministic,
+// always-available link that needs no API call and can't be wrong.
+function ticketSearchUrl(name) {
+    return `https://www.ticketmaster.com/search?q=${encodeURIComponent(name)}`;
 }
 
 function isValidEmail(email) {
@@ -69,7 +75,6 @@ export default function HomePage() {
     const [similarArtistsLoading, setSimilarArtistsLoading] = useState(false);
     const [similarArtistsError, setSimilarArtistsError] = useState("");
     const [similarArtistsSearched, setSimilarArtistsSearched] = useState(false);
-    const [ticketLinksLoading, setTicketLinksLoading] = useState(false);
     const [discoveryMode, setDiscoveryMode] = useState("blowing-up");
     const [archivesCardHeight, setArchivesCardHeight] = useState(null);
 
@@ -218,45 +223,11 @@ export default function HomePage() {
             });
             const results = resp.data || [];
             setSimilarArtists(results);
-            fetchTicketLinks(results);
         } catch (e) {
             setSimilarArtistsError("Couldn’t find similar artists. Please try again.");
             setSimilarArtists([]);
         } finally {
             setSimilarArtistsLoading(false);
-        }
-    }
-
-    async function fetchTicketLinks(results) {
-        const events = results
-            .filter((item) => item.nextShow && item.nextShow.venue && item.nextShow.date)
-            .map((item) => ({ artist: item.name, venue: item.nextShow.venue, date: item.nextShow.date }));
-        if (events.length === 0) return;
-
-        setTicketLinksLoading(true);
-        try {
-            const resp = await axios.post(`${env.BACKEND_URL}/ticket-links`, { events });
-            const infoByArtist = new Map((resp.data?.results || []).map((r) => [r.artist, r]));
-            setSimilarArtists((prev) =>
-                prev.map((p) => {
-                    if (!p.nextShow) return p;
-                    const info = infoByArtist.get(p.name);
-                    return {
-                        ...p,
-                        nextShow: { ...p.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null },
-                    };
-                })
-            );
-        } catch (e) {
-            // Ticket info is a non-critical enhancement. Resolve every pending card to
-            // "not available" rather than leaving them stuck showing a loading spinner.
-            setSimilarArtists((prev) =>
-                prev.map((p) =>
-                    p.nextShow ? { ...p, nextShow: { ...p.nextShow, ticketLink: null, price: null } } : p
-                )
-            );
-        } finally {
-            setTicketLinksLoading(false);
         }
     }
 
@@ -633,31 +604,17 @@ export default function HomePage() {
                                                         <Text className="muted">{item.nextShow.venue}</Text>
                                                     </span>
                                                 )}
-                                                {item.nextShow.ticketLink ? (
-                                                    <a
-                                                        href={item.nextShow.ticketLink}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="similarArtistShowRow similarArtistTicketLink"
-                                                    >
-                                                        <LinkOutlined />
-                                                        <Text className="muted">
-                                                            Buy tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
-                                                        </Text>
-                                                    </a>
-                                                ) : item.nextShow.ticketLink === undefined && ticketLinksLoading ? (
-                                                    <span className="similarArtistShowRow similarArtistTicketPending">
-                                                        <LoadingOutlined spin />
-                                                        <Text className="tinyMuted">Finding tickets…</Text>
-                                                    </span>
-                                                ) : (
-                                                    <Tooltip title="Couldn't verify a ticket link for this show">
-                                                        <span className="similarArtistShowRow similarArtistTicketUnavailable">
-                                                            <StopOutlined />
-                                                            <Text className="tinyMuted">No tickets found</Text>
-                                                        </span>
-                                                    </Tooltip>
-                                                )}
+                                                <a
+                                                    href={ticketSearchUrl(item.name)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="similarArtistShowRow similarArtistTicketLink"
+                                                >
+                                                    <LinkOutlined />
+                                                    <Text className="muted">
+                                                        Find tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
+                                                    </Text>
+                                                </a>
                                                 {item.showCount > 1 && (
                                                     <Tag className="pillTag" color="blue">
                                                         +{item.showCount - 1} more show{item.showCount - 1 > 1 ? "s" : ""}

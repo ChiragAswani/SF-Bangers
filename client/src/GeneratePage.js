@@ -15,7 +15,6 @@ import {
     FireOutlined,
     CompassOutlined,
     LinkOutlined,
-    StopOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import env from "./env.json";
@@ -33,6 +32,14 @@ function formatShowDate(show) {
     } catch (e) {
         return show.date;
     }
+}
+
+// A precise per-show ticket link needs a real ticketing API (on hold pending
+// SeatGeek approval — see src/getTicketLinks.js on the backend). Until then,
+// a Ticketmaster search for the artist's name is a deterministic,
+// always-available link that needs no API call and can't be wrong.
+function ticketSearchUrl(name) {
+    return `https://www.ticketmaster.com/search?q=${encodeURIComponent(name)}`;
 }
 
 function artistImageUrl(artist) {
@@ -149,36 +156,6 @@ export default function GeneratePage() {
         setStep("similarSelection");
     }
 
-    async function fetchTicketLinksForGroup(id, items) {
-        const events = items
-            .filter((item) => item.nextShow && item.nextShow.venue && item.nextShow.date)
-            .map((item) => ({ artist: item.name, venue: item.nextShow.venue, date: item.nextShow.date }));
-        if (events.length === 0) return;
-
-        function applyTicketInfo(infoByArtist) {
-            setSimilarByTopArtistId((prev) => {
-                const group = prev[id];
-                if (!group) return prev;
-                const updatedItems = group.items.map((it) => {
-                    if (!it.nextShow) return it;
-                    const info = infoByArtist.get(it.name);
-                    return {
-                        ...it,
-                        nextShow: { ...it.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null },
-                    };
-                });
-                return { ...prev, [id]: { ...group, items: updatedItems } };
-            });
-        }
-
-        try {
-            const resp = await api.post("/ticket-links", { events });
-            applyTicketInfo(new Map((resp.data?.results || []).map((r) => [r.artist, r])));
-        } catch (e) {
-            applyTicketInfo(new Map());
-        }
-    }
-
     async function loadSimilarForGroup(topArtist, mode) {
         const id = topArtist.id;
         setSimilarByTopArtistId((prev) => ({ ...prev, [id]: { loading: true, error: "", items: [], images: {} } }));
@@ -207,8 +184,6 @@ export default function GeneratePage() {
                         }));
                     })
                     .catch(() => {});
-
-                fetchTicketLinksForGroup(id, items);
             }
         } catch (e) {
             setSimilarByTopArtistId((prev) => ({
@@ -596,26 +571,16 @@ export default function GeneratePage() {
                                                                                         <EnvironmentOutlined /> {item.nextShow.venue}
                                                                                     </span>
                                                                                 )}
-                                                                                {item.nextShow.ticketLink ? (
-                                                                                    <a
-                                                                                        href={item.nextShow.ticketLink}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="generateSimilarShowRow generateSimilarTicketLink"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    >
-                                                                                        <LinkOutlined /> Buy tickets
-                                                                                        {item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
-                                                                                    </a>
-                                                                                ) : item.nextShow.ticketLink === undefined ? (
-                                                                                    <span className="generateSimilarShowRow generateSimilarTicketPending">
-                                                                                        <LoadingOutlined spin /> Finding tickets…
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span className="generateSimilarShowRow generateSimilarTicketUnavailable">
-                                                                                        <StopOutlined /> No tickets found
-                                                                                    </span>
-                                                                                )}
+                                                                                <a
+                                                                                    href={ticketSearchUrl(item.name)}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    className="generateSimilarShowRow generateSimilarTicketLink"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <LinkOutlined /> Find tickets
+                                                                                    {item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
+                                                                                </a>
                                                                                 {item.showCount > 1 && (
                                                                                     <span className="generateSimilarMoreShows">
                                                                                         +{item.showCount - 1} more show

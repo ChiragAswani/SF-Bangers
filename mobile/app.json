@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sfbangers.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryAddUsageDescription": "Allow SF Bangers to save your lineup image to your photos."
       }
     },
     "android": {

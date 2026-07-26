@@ -51,7 +51,7 @@ export default function App() {
   const [step, setStep] = useState('checking');
 
   const [seedArtists, setSeedArtists] = useState([]);
-  const [selectedArtists, setSelectedArtists] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
   const [playlistId, setPlaylistId] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
@@ -96,16 +96,19 @@ export default function App() {
     setStep('similarSelection');
   }, []);
 
-  const handleSimilarNext = useCallback((artists) => {
-    setSelectedArtists(artists);
+  const handleSimilarNext = useCallback((items) => {
+    setSelectedItems(items);
     setStep('review');
   }, []);
 
-  const handleGenerate = useCallback(async () => {
+  // Review lets the user trim their lineup before committing, so it hands
+  // back its own (possibly edited) list rather than relying on the list we
+  // handed it.
+  const handleGenerate = useCallback(async (items) => {
     setGenerating(true);
     setGenerateError('');
     try {
-      const resp = await api.post('/generate/playlist', { artists: selectedArtists });
+      const resp = await api.post('/generate/playlist', { artists: items.map((it) => it.name) });
       setPlaylistId(resp?.playlistId || '');
       setStep('result');
     } catch (e) {
@@ -117,25 +120,32 @@ export default function App() {
     } finally {
       setGenerating(false);
     }
-  }, [selectedArtists]);
+  }, []);
 
-  const handleConnectAndGenerate = useCallback(async () => {
-    setGenerateError('');
-    const ok = await connect();
-    if (ok) await handleGenerate();
-  }, [connect, handleGenerate]);
+  const handleConnectAndGenerate = useCallback(
+    async (items) => {
+      setGenerateError('');
+      const ok = await connect();
+      if (ok) await handleGenerate(items);
+    },
+    [connect, handleGenerate]
+  );
 
   const handleSkip = useCallback(() => {
     setPlaylistId('');
     setStep('result');
   }, []);
 
+  // Mirrors the initial-landing logic below: a connected user's "start" is
+  // picking seed artists, but a disconnected user's start is the intro
+  // screen — resetting to 'seedArtists' unconditionally would skip past the
+  // real first screen for anyone who never connected Spotify.
   const handleDone = useCallback(() => {
     setPlaylistId('');
-    setSelectedArtists([]);
+    setSelectedItems([]);
     setSeedArtists([]);
-    setStep('seedArtists');
-  }, []);
+    setStep(authStatus === 'connected' ? 'seedArtists' : 'intro');
+  }, [authStatus]);
 
   const goBack = useCallback(() => {
     const prevStep = getBackStep(step);
@@ -180,11 +190,12 @@ export default function App() {
           <SimilarSelectionScreen topArtists={seedArtists} onBack={goBack} onNext={handleSimilarNext} />
         ) : step === 'review' ? (
           <ReviewScreen
-            artists={selectedArtists}
+            items={selectedItems}
             onBack={goBack}
             onGenerate={handleGenerate}
             onConnectAndGenerate={handleConnectAndGenerate}
             onSkip={handleSkip}
+            onStartOver={handleDone}
             spotifyConnected={authStatus === 'connected'}
             generating={generating || connecting}
             error={generateError || authError}

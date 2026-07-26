@@ -1,4 +1,5 @@
 const Anthropic = require("@anthropic-ai/sdk");
+const { parseShowPrice } = require("./parseShowPrice");
 
 const SIMILAR_ARTISTS_SCHEMA = {
     type: "object",
@@ -157,6 +158,7 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
                           dayOfWeek: nextShow.dayOfWeek || null,
                           venue: nextShow.venue || null,
                           details: nextShow.details || null,
+                          price: parseShowPrice(nextShow.details),
                       }
                     : null,
             };
@@ -243,6 +245,7 @@ async function findSimilarArtistsForGroup(db, apiKey, artistNames, opts = {}) {
                           dayOfWeek: nextShow.dayOfWeek || null,
                           venue: nextShow.venue || null,
                           details: nextShow.details || null,
+                          price: parseShowPrice(nextShow.details),
                       }
                     : null,
             };

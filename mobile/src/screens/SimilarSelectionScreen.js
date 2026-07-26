@@ -9,8 +9,6 @@ import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, spacing } from '../theme';
 import { api } from '../api';
 
-const TICKET_CHUNK_SIZE = 8;
-
 export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,38 +37,6 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
     player.replace(previewUrl);
     player.play();
     setPlayingName(name);
-  }
-
-  async function fetchTicketLinks(results) {
-    const events = results
-      .filter((it) => it.nextShow && it.nextShow.venue && it.nextShow.date)
-      .map((it) => ({ artist: it.name, venue: it.nextShow.venue, date: it.nextShow.date }));
-    if (events.length === 0) return;
-
-    const chunks = [];
-    for (let i = 0; i < events.length; i += TICKET_CHUNK_SIZE) {
-      chunks.push(events.slice(i, i + TICKET_CHUNK_SIZE));
-    }
-
-    const infoByArtist = new Map();
-    await Promise.all(
-      chunks.map(async (chunk) => {
-        try {
-          const resp = await api.post('/ticket-links', { events: chunk });
-          (resp?.results || []).forEach((r) => infoByArtist.set(r.artist, r));
-        } catch (e) {
-          // leave these artists without an entry — handled as "no tickets found" below
-        }
-      })
-    );
-
-    setItems((prev) =>
-      prev.map((it) => {
-        if (!it.nextShow) return it;
-        const info = infoByArtist.get(it.name);
-        return { ...it, nextShow: { ...it.nextShow, ticketLink: info?.ticketLink ?? null, price: info?.price ?? null } };
-      })
-    );
   }
 
   async function loadResults(mode) {
@@ -106,8 +72,6 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
             setItems((prev) => prev.map((it) => ({ ...it, preview: previewMap[it.name] || null })));
           })
           .catch(() => {});
-
-        fetchTicketLinks(results);
       }
     } catch (e) {
       setError("Couldn't load similar artists. Please try again.");
@@ -136,7 +100,9 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
     });
   }
 
-  const selectedArtists = [...selections];
+  // hand off the full item — photo, show, tickets — not just the name, so
+  // Review can actually show what you're about to go see
+  const selectedItems = items.filter((it) => selections.has(it.name));
 
   if (loading) {
     return (
@@ -202,9 +168,9 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 
       <View style={styles.actions}>
         <PrimaryButton
-          label={`Review (${selectedArtists.length} selected)`}
-          disabled={selectedArtists.length === 0}
-          onPress={() => onNext(selectedArtists)}
+          label={`Review (${selectedItems.length} selected)`}
+          disabled={selectedItems.length === 0}
+          onPress={() => onNext(selectedItems)}
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
         />
       </View>
