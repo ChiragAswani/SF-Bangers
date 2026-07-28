@@ -33,7 +33,7 @@ const db = getFirestore(app, 'sfbangers');
 const SESSION_COOKIE = 'sfb_session';
 const PKCE_COOKIE = 'sfb_pkce';
 const IS_PROD = env.NODE_ENV === 'prod';
-const MOBILE_AUTH_DEEP_LINK = 'sfbangers://auth-callback';
+const MOBILE_AUTH_DEEP_LINK = 'gigly://auth-callback';
 
 app.get('/similar-artists', async (req, res) => {
     const mode = ['blowing-up', 'hidden-gems'].includes(req.query.mode) ? req.query.mode : undefined;
