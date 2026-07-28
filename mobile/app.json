@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SF Bangers",
+    "name": "Gigly",
     "slug": "sf-bangers",
     "scheme": "sfbangers",
     "version": "1.0.0",
@@ -12,7 +12,7 @@
       "bundleIdentifier": "com.sfbangers.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryAddUsageDescription": "Allow SF Bangers to save your lineup image to your photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow Gigly to save your lineup image to your photos.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSAllowsLocalNetworking": true,
