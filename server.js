@@ -5,7 +5,7 @@ const admin = require('firebase-admin');
 const {getFirestore} = require('firebase-admin/firestore');
 const env = require('./vars/env.json');
 const credentials = require('./vars/credentials.json');
-const {spotifyFetch} = require("./src/generateSpotifyPlaylist");
+const {spotifyFetch, generatePlaylistTop5PerArtist} = require("./src/generateSpotifyPlaylist");
 const {scrapeFoopeeListToFirestore} = require("./src/scrapeFoopeeList");
 const {findSimilarArtists, findSimilarArtistsForGroup} = require("./src/findSimilarArtists");
 const {parseCookies, getSessionId} = require("./src/cookies");
@@ -235,6 +235,37 @@ app.get('/generate/artist-preview', async (req, res) => {
         return res.status(200).json(results);
     } catch (err) {
         console.error('artist-preview error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.post('/generate/playlist', async (req, res) => {
+    const artists = req.body?.artists;
+    if (!Array.isArray(artists) || artists.length === 0) {
+        return res.status(400).json({ error: 'Missing artists array in request body' });
+    }
+    const cleanArtists = [...new Set(artists.filter((a) => typeof a === 'string' && a.trim()).map((a) => a.trim()))];
+    if (cleanArtists.length === 0) {
+        return res.status(400).json({ error: 'No valid artist names provided' });
+    }
+
+    try {
+        const sessionId = getSessionId(req, SESSION_COOKIE);
+        const accessToken = await getValidAccessTokenForSession(db, sessionId);
+        if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
+
+        const title = 'My Gigly Mix';
+        const description = `Made with Gigly — one track from each of ${cleanArtists.length} artist${cleanArtists.length > 1 ? 's' : ''} playing live in SF.`;
+
+        const playlistObj = await generatePlaylistTop5PerArtist(accessToken, cleanArtists, title, description, {
+            public: false,
+            perArtistLimit: 1,
+            debug: false,
+        });
+
+        return res.status(200).json({ playlistId: playlistObj.playlistId });
+    } catch (err) {
+        console.error('generate playlist error:', err);
         return res.status(500).json({ error: err?.message || String(err) });
     }
 });

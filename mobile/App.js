@@ -72,17 +72,13 @@ export default function App() {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
-  // Land on the right first screen once we know whether a saved Spotify
-  // session is still valid and the custom fonts are ready; only acts on the
-  // very first resolution so it doesn't yank the user back to "intro" if a
-  // later status check fails.
+  // Always land on the intro screen for a fresh app launch, even if a saved
+  // Spotify session is still valid — a returning connected user just taps
+  // "Get Started" and skips straight past the (already-connected) auth step.
   useEffect(() => {
     if (authStatus === 'checking' || !fontsLoaded) return;
     SplashScreen.hideAsync().catch(() => {});
-    setStep((prev) => {
-      if (prev !== 'checking') return prev;
-      return authStatus === 'connected' ? 'seedArtists' : 'intro';
-    });
+    setStep((prev) => (prev !== 'checking' ? prev : 'intro'));
   }, [authStatus, fontsLoaded]);
 
   const handleGetStarted = useCallback(() => setStep('seedArtists'), []);
@@ -136,16 +132,12 @@ export default function App() {
     setStep('result');
   }, []);
 
-  // Mirrors the initial-landing logic below: a connected user's "start" is
-  // picking seed artists, but a disconnected user's start is the intro
-  // screen — resetting to 'seedArtists' unconditionally would skip past the
-  // real first screen for anyone who never connected Spotify.
   const handleDone = useCallback(() => {
     setPlaylistId('');
     setSelectedItems([]);
     setSeedArtists([]);
-    setStep(authStatus === 'connected' ? 'seedArtists' : 'intro');
-  }, [authStatus]);
+    setStep('intro');
+  }, []);
 
   const goBack = useCallback(() => {
     const prevStep = getBackStep(step);
