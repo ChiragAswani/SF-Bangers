@@ -93,7 +93,7 @@ const DISCOVERY_MODE_INSTRUCTIONS = {
 };
 
 async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
-    const { collectionName = "foopeeArtists", model = "claude-sonnet-5", mode } = opts;
+    const { collectionName = "foopeeArtists", model = "claude-haiku-4-5", mode } = opts;
 
     const candidatesMap = await getArtistCandidates(db, collectionName);
     const candidates = [...candidatesMap.keys()];
@@ -105,12 +105,15 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
 
     // This is a bounded classification/matching task, not deep multi-step
     // reasoning — extended thinking on a large candidate list was the main
-    // source of ~30s latency, so it's disabled here in favor of low effort.
+    // source of ~30s latency, so it's disabled here. Haiku 4.5 doesn't
+    // support the effort param, so it's only set for other models.
     const response = await anthropic.messages.create({
         model,
         max_tokens: 4096,
         thinking: { type: "disabled" },
-        output_config: { format: { type: "json_schema", schema: SIMILAR_ARTISTS_SCHEMA }, effort: "low" },
+        output_config: model === "claude-haiku-4-5"
+            ? { format: { type: "json_schema", schema: SIMILAR_ARTISTS_SCHEMA } }
+            : { format: { type: "json_schema", schema: SIMILAR_ARTISTS_SCHEMA }, effort: "low" },
         messages: [
             {
                 role: "user",
@@ -170,7 +173,7 @@ async function findSimilarArtists(db, apiKey, artistName, opts = {}) {
 // forced a "drill into each one separately" UI. Each pick is tagged with
 // whichever seed artist it best matches so the UI can still show "why".
 async function findSimilarArtistsForGroup(db, apiKey, artistNames, opts = {}) {
-    const { collectionName = "foopeeArtists", model = "claude-sonnet-5", mode, limit = 12 } = opts;
+    const { collectionName = "foopeeArtists", model = "claude-haiku-4-5", mode, limit = 12 } = opts;
 
     const candidatesMap = await getArtistCandidates(db, collectionName);
     const seedNamesLower = new Set(artistNames.map((n) => n.toLowerCase()));
@@ -187,12 +190,15 @@ async function findSimilarArtistsForGroup(db, apiKey, artistNames, opts = {}) {
 
     // Same latency fix as the single-artist version above — this is a
     // matching/ranking task over a fixed candidate list, not something that
-    // benefits from extended thinking.
+    // benefits from extended thinking. Haiku 4.5 doesn't support the effort
+    // param, so it's only set for other models.
     const response = await anthropic.messages.create({
         model,
         max_tokens: 4096,
         thinking: { type: "disabled" },
-        output_config: { format: { type: "json_schema", schema: SIMILAR_ARTISTS_GROUP_SCHEMA }, effort: "low" },
+        output_config: model === "claude-haiku-4-5"
+            ? { format: { type: "json_schema", schema: SIMILAR_ARTISTS_GROUP_SCHEMA } }
+            : { format: { type: "json_schema", schema: SIMILAR_ARTISTS_GROUP_SCHEMA }, effort: "low" },
         messages: [
             {
                 role: "user",

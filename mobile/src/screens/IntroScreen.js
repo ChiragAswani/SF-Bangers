@@ -17,11 +17,10 @@ export default function IntroScreen({ onGetStarted }) {
           <View style={[styles.chip, { backgroundColor: house[2].bg }]} />
           <View style={[styles.chip, { backgroundColor: house[4].bg }]} />
         </View>
-        <Text style={styles.eyebrow}>SF Bangers</Text>
+        <Text style={styles.eyebrow}>Gigly</Text>
         <Text style={styles.hero}>Find your next favorite hidden gem</Text>
         <Text style={styles.subhero}>
-          Tell us who you already love and we'll match you with similar artists — the low-key,
-          under-the-radar ones included — who are already playing live in SF. Then go get tickets.
+          Tell us who you love. We'll find the artists playing live in the Bay Area who sound like them, even the under-the-radar ones. Tickets are one tap away.
         </Text>
         <PrimaryButton
           label="Get Started"

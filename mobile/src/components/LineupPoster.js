@@ -16,7 +16,7 @@ export default function LineupPoster({ items }) {
         <View style={[styles.chip, { backgroundColor: house[4].bg }]} />
       </View>
 
-      <Text style={styles.eyebrow}>SF BANGERS</Text>
+      <Text style={styles.eyebrow}>Gigly</Text>
       <Text style={styles.title}>My SF Lineup</Text>
       <Text style={styles.subtitle}>
         {items.length} new artist{items.length === 1 ? '' : 's'} to discover
@@ -40,7 +40,7 @@ export default function LineupPoster({ items }) {
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.footer}>Discover yours at sfbangers.com</Text>
+      <Text style={styles.footer}>Discover yours at gigly.com</Text>
     </View>
   );
 }

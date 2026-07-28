@@ -298,7 +298,7 @@ app.post('/generate/playlist', async (req, res) => {
         const accessToken = await getValidAccessTokenForSession(db, sessionId);
         if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
 
-        const title = 'My SF Bangers Mix';
+        const title = 'My Gigly Mix';
         const description = `Made with SF Bangers — one track from each of ${cleanArtists.length} artist${cleanArtists.length > 1 ? 's' : ''} playing live in SF.`;
 
         const playlistObj = await generatePlaylistTop5PerArtist(accessToken, cleanArtists, title, description, {

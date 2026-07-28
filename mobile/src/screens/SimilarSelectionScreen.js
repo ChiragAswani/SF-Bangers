@@ -145,7 +145,11 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
           <Text style={styles.mutedText}>No similar artists found.</Text>
         </View>
       ) : (
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+        <ScrollView
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        >
           {items.map((item) => {
             const isActive = playingName === item.name;
             return (
@@ -179,7 +183,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 }
 
 const styles = StyleSheet.create({
-  stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.sm, alignSelf: 'flex-start' },
   backText: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 14 },
   eyebrow: {
@@ -202,6 +206,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.danger, fontFamily: fonts.bodyMedium, textAlign: 'center' },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium },
   list: { flex: 1 },
-  listContent: { paddingBottom: spacing.lg },
-  actions: { alignItems: 'center', paddingVertical: spacing.md },
+  listContent: { paddingBottom: spacing.xl * 2 },
+  actions: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: spacing.xs,
+    alignItems: 'center',
+  },
 });

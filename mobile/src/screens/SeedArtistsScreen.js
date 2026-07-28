@@ -239,10 +239,10 @@ export default function SeedArtistsScreen({
 }
 
 const styles = StyleSheet.create({
-  stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.sm, alignSelf: 'flex-start' },
   backText: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 14 },
-  scrollContent: { paddingBottom: spacing.lg },
+  scrollContent: { paddingBottom: spacing.xl * 2 },
   eyebrow: {
     color: colors.primary,
     fontFamily: fonts.bodyBold,
@@ -287,8 +287,14 @@ const styles = StyleSheet.create({
   spotifyHeaderText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 14 },
   spotifyConnectRow: { alignItems: 'flex-start', gap: spacing.sm },
   poolLoading: { paddingVertical: spacing.lg, alignItems: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: spacing.sm },
   error: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 13 },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 13 },
-  actions: { alignItems: 'center', paddingVertical: spacing.md },
+  actions: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: spacing.xs,
+    alignItems: 'center',
+  },
 });
