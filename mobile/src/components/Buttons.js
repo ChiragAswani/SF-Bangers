@@ -9,7 +9,7 @@ const VARIANTS = {
   ghost: { container: 'ghost', text: 'ghostText', spinner: colors.ink },
 };
 
-function Button({ variant = 'primary', label, onPress, icon, loading, disabled }) {
+function Button({ variant = 'primary', label, onPress, icon, loading, disabled, style }) {
   const v = VARIANTS[variant];
   const isDisabled = disabled || loading;
 
@@ -28,6 +28,7 @@ function Button({ variant = 'primary', label, onPress, icon, loading, disabled }
         styles[v.container],
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
+        style,
       ]}
     >
       {loading ? (

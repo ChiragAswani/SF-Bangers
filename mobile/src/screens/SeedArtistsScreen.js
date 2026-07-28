@@ -233,6 +233,7 @@ export default function SeedArtistsScreen({
           disabled={addedArtists.length === 0}
           onPress={() => onNext(addedArtists)}
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
+          style={styles.floatingShadow}
         />
       </View>
     </View>
@@ -297,5 +298,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: spacing.xs,
     alignItems: 'center',
+  },
+  floatingShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
   },
 });
