@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModeToggle from '../components/ModeToggle';
 import SimilarArtistCard from '../components/SimilarArtistCard';
 import DiscoveryLoader from '../components/DiscoveryLoader';
@@ -10,6 +11,12 @@ import { colors, fonts, spacing } from '../theme';
 import { api } from '../api';
 
 export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
+  // native safe-area inset reserves ~34pt for the home indicator — way more
+  // than a floating pill needs to clear it, so use a tight fixed clearance
+  // instead and only fall back to the inset on devices that have none
+  const insets = useSafeAreaInsets();
+  const floatingBottom = insets.bottom > 0 ? 22 : spacing.lg;
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -169,7 +176,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
         </ScrollView>
       )}
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, { bottom: floatingBottom }]}>
         <PrimaryButton
           label={`Review (${selectedItems.length} selected)`}
           disabled={selectedItems.length === 0}
@@ -212,7 +219,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: spacing.xs,
     alignItems: 'center',
   },
   floatingShadow: {

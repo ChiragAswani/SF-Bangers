@@ -167,7 +167,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar style="dark" />
 
         {step === 'checking' || !fontsLoaded ? (

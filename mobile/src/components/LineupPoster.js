@@ -17,7 +17,7 @@ export default function LineupPoster({ items }) {
       </View>
 
       <Text style={styles.eyebrow}>Gigly</Text>
-      <Text style={styles.title}>My SF Lineup</Text>
+      <Text style={styles.title}>My Lineup</Text>
       <Text style={styles.subtitle}>
         {items.length} new artist{items.length === 1 ? '' : 's'} to discover
       </Text>
@@ -40,7 +40,7 @@ export default function LineupPoster({ items }) {
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.footer}>Discover yours at gigly.com</Text>
+      <Text style={styles.footer}>Discover yours at getgigly.io</Text>
     </View>
   );
 }

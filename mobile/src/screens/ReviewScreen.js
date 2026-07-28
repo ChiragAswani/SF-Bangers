@@ -4,6 +4,7 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import LineupPoster from '../components/LineupPoster';
 import SimilarArtistCard from '../components/SimilarArtistCard';
@@ -21,6 +22,11 @@ export default function ReviewScreen({
   generating,
   error,
 }) {
+  // footer sits in normal flow (not floating), so it needs its own
+  // safe-area clearance now that the app-level SafeAreaView only reserves
+  // the top edge
+  const insets = useSafeAreaInsets();
+
   // owns its own copy so the user can trim their lineup right up until they
   // commit — a real "review" step, not just a read-only recap
   const [lineup, setLineup] = useState(items);
@@ -154,7 +160,7 @@ export default function ReviewScreen({
         </View>
       </View>
 
-      <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+      <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {lineup.map((item) => {
           const isActive = playingName === item.name;
           return (
@@ -175,7 +181,7 @@ export default function ReviewScreen({
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         {spotifyConnected ? (
           <PrimaryButton
             label="Save Lineup to Spotify"
@@ -251,7 +257,7 @@ const styles = StyleSheet.create({
   emptyCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 14 },
   error: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },
-  actions: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
+  actions: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.md },
   startOverText: {
     color: colors.muted,
     fontFamily: fonts.bodySemibold,

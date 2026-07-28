@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ArtistCard from '../components/ArtistCard';
 import { GhostButton, PrimaryButton, SpotifyButton } from '../components/Buttons';
 import { colors, fonts, radii, spacing } from '../theme';
@@ -32,6 +33,12 @@ export default function SeedArtistsScreen({
   onConnectSpotify,
   onSpotifySessionExpired,
 }) {
+  // native safe-area inset reserves ~34pt for the home indicator — way more
+  // than a floating pill needs to clear it, so use a tight fixed clearance
+  // instead and only fall back to the inset on devices that have none
+  const insets = useSafeAreaInsets();
+  const floatingBottom = insets.bottom > 0 ? 22 : spacing.lg;
+
   const [inputValue, setInputValue] = useState('');
   // the one running list — populated by manual search AND by tapping a
   // Spotify suggestion, so both paths feel like the same kind of "pick"
@@ -152,7 +159,11 @@ export default function SeedArtistsScreen({
         <Text style={styles.eyebrow}>Your Artists</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>Who do you want similar shows for?</Text>
         <Text style={styles.subhero}>Search as many as you like, or tap in favorites from your Spotify below.</Text>
 
@@ -227,7 +238,7 @@ export default function SeedArtistsScreen({
         </View>
       </ScrollView>
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, { bottom: floatingBottom }]}>
         <PrimaryButton
           label={addedArtists.length > 0 ? `Next (${addedArtists.length})` : 'Add an artist to continue'}
           disabled={addedArtists.length === 0}
@@ -296,7 +307,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: spacing.xs,
     alignItems: 'center',
   },
   floatingShadow: {

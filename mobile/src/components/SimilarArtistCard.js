@@ -163,7 +163,7 @@ export default function SimilarArtistCard({
           <Pressable onPress={handleTicketPress} style={styles.showRow} hitSlop={6}>
             <Ionicons name="link-outline" size={13} color={trim.bg} />
             <Text style={[styles.ticketText, { color: trim.bg }]}>
-              Find tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
+              Tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
             </Text>
           </Pressable>
 
