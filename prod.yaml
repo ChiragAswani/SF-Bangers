@@ -3,31 +3,13 @@ service: default
 instance_class: F1
 
 handlers:
-  # Serve static files with proper caching
   - url: /static
     static_dir: build/static
     secure: always
     http_headers:
       Cache-Control: "public, max-age=31536000, immutable"
 
-  # Define API routes to ensure they are handled by Node.js
-  - url: /generate-playlist
-    script: auto
-    secure: always
-
-  - url: /get-playlists
-    script: auto
-    secure: always
-
   - url: /ping
-    script: auto
-    secure: always
-
-  - url: /change-weekly-email-subscription
-    script: auto
-    secure: always
-
-  - url: /send-weekly-playlist
     script: auto
     secure: always
   
@@ -39,10 +21,6 @@ handlers:
     script: auto
     secure: always
 
-  - url: /ticket-links
-    script: auto
-    secure: always
-
   - url: /auth/spotify/.*
     script: auto
     secure: always
@@ -51,7 +29,6 @@ handlers:
     script: auto
     secure: always
 
-  # Serve the main index.html for React frontend (catch-all)
   - url: /.*
     static_files: build/index.html
     upload: build/index.html

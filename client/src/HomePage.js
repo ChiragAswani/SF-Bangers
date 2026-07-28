@@ -1,660 +1,75 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
-import logo from "./assets/logo.png";
-import {
-    Button,
-    Input,
-    message,
-    Typography,
-    Space,
-    Card,
-    Skeleton,
-    Tag,
-    Tooltip,
-    Empty,
-} from "antd";
-import {
-    CopyOutlined,
-    MailOutlined,
-    ReloadOutlined,
-    SearchOutlined,
-    SpotifyOutlined,
-    InfoCircleOutlined,
-    CalendarOutlined,
-    EnvironmentOutlined,
-    LinkOutlined,
-    FireOutlined,
-    CompassOutlined,
-    ThunderboltOutlined,
-} from "@ant-design/icons";
-import axios from "axios";
-import env from "./env.json";
+import React from "react";
+import giglyIcon from "./assets/gigly-icon.png";
+import appScreenshot from "./assets/app-screenshot.png";
 import "./assets/homepage.css";
 
-const { Title, Text, Link } = Typography;
-
-function formatShowDate(show) {
-    if (!show?.date) return show?.dayOfWeek || "Date TBD";
-    try {
-        const d = new Date(`${show.date}T00:00:00`);
-        return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-    } catch (e) {
-        return show.date;
-    }
-}
-
-// A precise per-show ticket link needs a real ticketing API (on hold pending
-// SeatGeek approval — see src/getTicketLinks.js on the backend). Until then,
-// a Ticketmaster search for the artist's name is a deterministic,
-// always-available link that needs no API call and can't be wrong.
-function ticketSearchUrl(name) {
-    return `https://www.ticketmaster.com/search?q=${encodeURIComponent(name)}`;
-}
-
-function isValidEmail(email) {
-    if (!email) return false;
-    if (typeof email !== "string") return false;
-    if (email.length > 60) return false;
-    // simple + safe email check (not perfect, but good UX)
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+function AppleGlyph() {
+    return (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path d="M16.365 1.43c0 1.14-.415 2.19-1.246 3.15-.998 1.14-2.206 1.8-3.516 1.69-.05-1.1.41-2.24 1.24-3.16.83-.93 2.26-1.6 3.44-1.68.02.13.02.27.02.4M20.6 17.24c-.5 1.15-.74 1.66-1.38 2.68-.9 1.43-2.16 3.21-3.73 3.22-1.39.02-1.75-.9-3.63-.89-1.88.01-2.27.9-3.66.89-1.57-.02-2.76-1.62-3.66-3.05-2.51-3.97-2.78-8.63-1.23-11.11.9-1.44 2.55-2.36 4.16-2.36 1.68 0 2.74.94 4.13.94 1.35 0 2.17-.94 4.13-.94 1.44 0 2.96.79 4.05 2.15-1.78 1-2.98 2.68-2.98 4.63 0 2.24 1.37 3.51 2.85 3.84z" />
+        </svg>
+    );
 }
 
 export default function HomePage() {
-    const [messageApi, contextHolder] = message.useMessage();
-
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [activePlaylistId, setActivePlaylistId] = useState("");
-    const [activePlaylistDateRange, setActivePlaylistDateRange] = useState("");
-    const [archivedPlaylists, setArchivedPlaylists] = useState([]);
-    const [email, setEmail] = useState("");
-    const [archiveSearch, setArchiveSearch] = useState("");
-    const [error, setError] = useState("");
-    const [similarArtistQuery, setSimilarArtistQuery] = useState("");
-    const [similarArtists, setSimilarArtists] = useState([]);
-    const [similarArtistsLoading, setSimilarArtistsLoading] = useState(false);
-    const [similarArtistsError, setSimilarArtistsError] = useState("");
-    const [similarArtistsSearched, setSimilarArtistsSearched] = useState(false);
-    const [discoveryMode, setDiscoveryMode] = useState("blowing-up");
-    const [archivesCardHeight, setArchivesCardHeight] = useState(null);
-
-    const playlistCardRef = useRef(null);
-    const emailCardRef = useRef(null);
-
-    const activePlaylistUrl = useMemo(() => {
-        if (!activePlaylistId) return "";
-        return `https://open.spotify.com/playlist/${activePlaylistId}`;
-    }, [activePlaylistId]);
-
-    const activeEmbedUrl = useMemo(() => {
-        if (!activePlaylistId) return "";
-        return `https://open.spotify.com/embed/playlist/${activePlaylistId}`;
-    }, [activePlaylistId]);
-
-    const filteredArchives = useMemo(() => {
-        const q = archiveSearch.trim().toLowerCase();
-        if (!q) return archivedPlaylists;
-        return archivedPlaylists.filter((p) => p.dateRange.toLowerCase().includes(q));
-    }, [archivedPlaylists, archiveSearch]);
-
-    const sortedSimilarArtists = useMemo(
-        () => [...similarArtists].sort((a, b) => (b.score || 0) - (a.score || 0)),
-        [similarArtists]
-    );
-
-    function normalizePlaylists(raw) {
-        let active = null;
-        const archives = [];
-
-        for (const p of raw || []) {
-            if (p?.isActive) {
-                active = p;
-            } else if (p?.playlistId && p?.dateRange) {
-                archives.push({
-                    key: p.playlistId,
-                    dateRange: p.dateRange,
-                    playlistUrl: `https://open.spotify.com/playlist/${p.playlistId}`,
-                });
-            }
-        }
-
-        // newest-ish first by dateRange text (best effort)
-        archives.reverse();
-
-        return { active, archives };
-    }
-
-    async function fetchPlaylists({ showSpinner = true } = {}) {
-        if (showSpinner) setLoading(true);
-        setError("");
-
-        try {
-            const resp = await axios.get(`${env.BACKEND_URL}/get-playlists`);
-            const { active, archives } = normalizePlaylists(resp.data);
-
-            if (active?.playlistId) {
-                setActivePlaylistId(active.playlistId);
-                setActivePlaylistDateRange(active.dateRange || "");
-            } else {
-                setActivePlaylistId("");
-                setActivePlaylistDateRange("");
-            }
-            setArchivedPlaylists(archives);
-        } catch (e) {
-            setError("Couldn’t load playlists. Please try again.");
-        } finally {
-            if (showSpinner) setLoading(false);
-        }
-    }
-
-    useEffect(() => {
-        fetchPlaylists({ showSpinner: true });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // CSS alone can't shrink the archives card to match the playlist card's height —
-    // stretch/flex-grow only ever grows a shorter column, never clips a naturally-tall
-    // one — so measure the real rendered heights and set an explicit pixel height instead.
-    useEffect(() => {
-        const GAP = 14;
-
-        const updateHeight = () => {
-            const leftHeight = playlistCardRef.current?.offsetHeight;
-            const emailHeight = emailCardRef.current?.offsetHeight;
-            if (!leftHeight || !emailHeight) return;
-            setArchivesCardHeight(Math.max(160, leftHeight - emailHeight - GAP));
-        };
-
-        updateHeight();
-
-        const observer = new ResizeObserver(updateHeight);
-        if (playlistCardRef.current) observer.observe(playlistCardRef.current);
-        if (emailCardRef.current) observer.observe(emailCardRef.current);
-
-        return () => observer.disconnect();
-    }, []);
-
-    function copyToClipboard(text, successMsg = "Copied") {
-        if (!text) return;
-        navigator.clipboard
-            .writeText(text)
-            .then(() => messageApi.success(successMsg))
-            .catch(() => messageApi.error("Couldn’t copy to clipboard"));
-    }
-
-    async function toggleWeeklyEmailSubscription() {
-        const trimmed = email.trim();
-
-        if (!isValidEmail(trimmed)) {
-            messageApi.error("Please enter a valid email address.");
-            return;
-        }
-
-        try {
-            const resp = await axios.get(
-                `${env.BACKEND_URL}/change-weekly-email-subscription?email=${encodeURIComponent(
-                    trimmed
-                )}&key=ohBE0DPCNAlRv3lU`
-            );
-
-            messageApi.success(
-                resp.data ? "Subscribed to weekly updates." : "Unsubscribed from weekly updates."
-            );
-            setEmail("");
-        } catch (e) {
-            messageApi.error("Subscription update failed. Please try again.");
-        }
-    }
-
-    async function findSimilarArtists() {
-        const trimmed = similarArtistQuery.trim();
-        if (!trimmed) {
-            messageApi.error("Please enter an artist name.");
-            return;
-        }
-
-        setSimilarArtistsLoading(true);
-        setSimilarArtistsError("");
-        setSimilarArtistsSearched(true);
-
-        try {
-            const resp = await axios.get(`${env.BACKEND_URL}/similar-artists`, {
-                params: { artist: trimmed, mode: discoveryMode },
-            });
-            const results = resp.data || [];
-            setSimilarArtists(results);
-        } catch (e) {
-            setSimilarArtistsError("Couldn’t find similar artists. Please try again.");
-            setSimilarArtists([]);
-        } finally {
-            setSimilarArtistsLoading(false);
-        }
-    }
-
-    async function onRefresh() {
-        setRefreshing(true);
-        await fetchPlaylists({ showSpinner: false });
-        setRefreshing(false);
-        messageApi.success("Updated.");
-    }
-
     return (
-        <div className="pageShell">
-            {contextHolder}
+        <div className="splashShell">
+            <div className="blob blobA" />
+            <div className="blob blobB" />
+            <div className="blob blobC" />
 
-            {/* Background decoration */}
-            <div className="bgGlow bgGlowA" />
-            <div className="bgGlow bgGlowB" />
+            <main className="splashContent">
+                <div className="heroGrid">
+                    <div className="heroText">
+                        <div className="brandLockup">
+                            <img src={giglyIcon} alt="" className="brandIcon" />
+                            <span className="eyebrow">Gigly</span>
+                        </div>
 
-            <header className="topBar" id="section-home">
-                <div className="brandRow">
-                    <img src={logo} className="brandLogo" alt="SF Bangers logo" />
-                    <div className="brandText">
-                        <Title level={3} className="brandTitle">
-                            SF Bangers
-                        </Title>
+                        <div className="chipRow">
+                            <span className="chip chipCoral" />
+                            <span className="chip chipTeal" />
+                            <span className="chip chipMustard" />
+                            <span className="chip chipRose" />
+                        </div>
+
+                        <h1 className="headline">Find your next favorite hidden gem</h1>
+                        <p className="subhero">
+                            Tell us who you love. We'll find the artists playing live in the Bay
+                            Area who sound like them, even the under-the-radar ones. Tickets are
+                            one tap away.
+                        </p>
+
+                        <div
+                            className="appStoreBtn"
+                            role="button"
+                            aria-disabled="true"
+                            title="Coming soon"
+                        >
+                            <AppleGlyph />
+                            <span className="appStoreBtnText">
+                                <span className="appStoreBtnSmall">Coming soon on the</span>
+                                <span className="appStoreBtnBig">App Store</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="heroPhoneWrap">
+                        <div className="phoneGlow" />
+                        <div className="phoneMockup">
+                            <div className="phoneScreen">
+                                <img src={appScreenshot} alt="Gigly app showing a matched artist with tickets" />
+                            </div>
+                            <div className="phoneSideButtonLeft1" />
+                            <div className="phoneSideButtonLeft2" />
+                            <div className="phoneSideButtonRight" />
+                        </div>
                     </div>
                 </div>
-            </header>
-
-            <section className="heroSection">
-                <Card className="card glass heroCard" bodyStyle={{ padding: 0 }}>
-                    <div className="heroGlow" />
-                    <div className="heroCardInner">
-                        <div className="heroIntro">
-                            <Text className="eyebrow">How it works</Text>
-                            <Title level={2} className="heroTitle">
-                                Live SF music, turned into playlists
-                            </Title>
-                            <Text className="heroSubtitle">
-                                We track every show happening in San Francisco, match each artist to a track on
-                                Spotify, and turn it into a playlist — dropped weekly for everyone, or generated
-                                on demand just for you.
-                            </Text>
-                            <RouterLink to="/generate" className="heroCtaLink">
-                                <Button type="primary" size="large" className="heroCta" icon={<ThunderboltOutlined />}>
-                                    Generate your mix
-                                </Button>
-                            </RouterLink>
-                        </div>
-
-                        <div className="heroSteps">
-                            <div className="heroStep">
-                                <div className="heroStepIcon heroStepIconA">
-                                    <EnvironmentOutlined />
-                                </div>
-                                <Text strong className="heroStepTitle">
-                                    We track SF shows
-                                </Text>
-                                <Text className="heroStepDesc">
-                                    Every artist playing live around the city, scraped fresh each week.
-                                </Text>
-                            </div>
-
-                            <div className="heroStepArrow" />
-
-                            <div className="heroStep">
-                                <div className="heroStepIcon heroStepIconB">
-                                    <SpotifyOutlined />
-                                </div>
-                                <Text strong className="heroStepTitle">
-                                    Matched to Spotify
-                                </Text>
-                                <Text className="heroStepDesc">
-                                    One track pulled from each artist's catalog, ready to stream.
-                                </Text>
-                            </div>
-
-                            <div className="heroStepArrow" />
-
-                            <div className="heroStep">
-                                <div className="heroStepIcon heroStepIconC">
-                                    <ThunderboltOutlined />
-                                </div>
-                                <Text strong className="heroStepTitle">
-                                    Your mix, your way
-                                </Text>
-                                <Text className="heroStepDesc">
-                                    Get the weekly drop, or generate a playlist from your own top artists.
-                                </Text>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-            </section>
-
-            <main className="grid">
-                {/* LEFT: Active playlist */}
-                <section className="leftCol">
-                    <Card ref={playlistCardRef} className="card glass" bodyStyle={{ padding: 18 }} id="section-weekly">
-                        <div className="cardHeader">
-                            <div>
-                                <Text className="eyebrow">This week</Text>
-                                <div className="titleRow">
-                                    <Title level={4} className="cardTitle">
-                                        {loading ? "Loading playlist…" : activePlaylistDateRange || "No active playlist"}
-                                    </Title>
-                                    <Tag className="pillTag" color="green">
-                                        Mondays
-                                    </Tag>
-                                </div>
-                                <Text className="muted">
-                                    New playlist generated every Monday with one song from each artist playing live in SF that week.
-                                </Text>
-                            </div>
-
-                        </div>
-
-                        {loading ? (
-                            <div style={{ paddingTop: 12 }}>
-                                <Skeleton active paragraph={{ rows: 6 }} />
-                            </div>
-                        ) : error ? (
-                            <div className="centerPad">
-                                <Text className="errorText">{error}</Text>
-                                <div style={{ marginTop: 12 }}>
-                                    <Button type="primary" onClick={() => fetchPlaylists({ showSpinner: true })}>
-                                        Try again
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : activeEmbedUrl ? (
-                            <iframe
-                                className="spotifyFrame"
-                                data-testid="embed-iframe"
-                                src={activeEmbedUrl}
-                                allowFullScreen=""
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                                title="SF Bangers active playlist"
-                            />
-                        ) : (
-                            <Empty description="No active playlist found." />
-                        )}
-
-                        {activePlaylistUrl && !loading && !error && (
-                            <div className="activeFooter">
-                                <Button
-                                    className="ghostBtn"
-                                    icon={<SpotifyOutlined />}
-                                    onClick={() => window.open(activePlaylistUrl, "_blank", "noreferrer")}
-                                >
-                                    Open in Spotify
-                                </Button>
-                                <Button
-                                    className="ghostBtn"
-                                    icon={<CopyOutlined />}
-                                    onClick={() => copyToClipboard(activePlaylistUrl, "Playlist link copied")}
-                                >
-                                    Copy link
-                                </Button>
-                            </div>
-                        )}
-                    </Card>
-                </section>
-
-                {/* RIGHT: Email + Archives */}
-                <section className="rightCol">
-                    {/* Email card */}
-                    <Card ref={emailCardRef} className="card glass" bodyStyle={{ padding: 18 }} id="section-subscribe">
-                        <div className="sectionTitleRow">
-                            <Title level={5} className="sectionTitle">
-                                Weekly Updates
-                            </Title>
-                            <Text className="muted">Subscribe/unsubscribe anytime.</Text>
-                        </div>
-
-                        <Space.Compact style={{ width: "100%" }}>
-                            <Input
-                                style={{ borderRadius: '0px !important' }}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Email address"
-                                prefix={<MailOutlined />}
-                                onPressEnter={toggleWeeklyEmailSubscription}
-                            />
-                            <Button type="primary" onClick={toggleWeeklyEmailSubscription} style={{marginLeft: 10}}>
-                                Submit
-                            </Button>
-                        </Space.Compact>
-
-                        <Text className="tinyMuted">
-                            We’ll only email when a new playlist drops.
-                        </Text>
-                    </Card>
-
-                    {/* Archives card */}
-                    <Card
-                        className="card glass archivesCard"
-                        style={archivesCardHeight ? { height: archivesCardHeight } : undefined}
-                        bodyStyle={{ padding: 18, display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}
-                        id="section-archives"
-                    >
-                        <div className="sectionTitleRow">
-                            <div>
-                                <Title level={5} className="sectionTitle">
-                                    Archives
-                                </Title>
-                                <Text className="muted">
-                                    Previously generated playlists for SF shows.
-                                </Text>
-                            </div>
-                        </div>
-
-                        {filteredArchives.length === 0 ? (
-                            <div className="centerPad">
-                                <Empty
-                                    description={
-                                        archivedPlaylists.length ? "No matches." : "No archived playlists yet."
-                                    }
-                                />
-                            </div>
-                        ) : (
-                            <div className="archivesList">
-                                {filteredArchives.map((record) => (
-                                    <div className="archiveRow" key={record.key}>
-                                        <a
-                                            href={record.playlistUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="archiveRowLink"
-                                        >
-                                            <SpotifyOutlined />
-                                            <span>SF Bangers / {record.dateRange}</span>
-                                        </a>
-                                        <Tooltip title="Copy link">
-                                            <Button
-                                                size="small"
-                                                className="ghostBtn"
-                                                icon={<CopyOutlined />}
-                                                onClick={() => copyToClipboard(record.playlistUrl, "Archive link copied")}
-                                            />
-                                        </Tooltip>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {archivedPlaylists.length > 0 && (
-                            <div className="tableFooter">
-                                <Text className="tinyMuted">
-                                    Tip: click a row link to open Spotify, or copy from the icon.
-                                </Text>
-                            </div>
-                        )}
-                    </Card>
-                </section>
             </main>
 
-            <section className="similarArtistsSection" id="section-similar-artists">
-                <Card className="card glass similarArtistsCard" bodyStyle={{ padding: 24 }}>
-                    <div className="similarArtistsHeader">
-                        <div>
-                            <Text className="eyebrow">Discover</Text>
-                            <Title level={4} className="cardTitle similarArtistsTitle">
-                                Find Similar Artists
-                            </Title>
-                            <Text className="muted">
-                                Enter an artist you like and we’ll surface similar acts with upcoming SF shows.
-                            </Text>
-                        </div>
-
-                        <Space.Compact className="similarArtistsSearch">
-                            <Input
-                                value={similarArtistQuery}
-                                onChange={(e) => setSimilarArtistQuery(e.target.value)}
-                                placeholder="e.g. Electric Guest, Sombr.."
-                                prefix={<SearchOutlined />}
-                                onPressEnter={findSimilarArtists}
-                            />
-                            <Button
-                                style={{marginLeft: 10}}
-                                type="primary"
-                                loading={similarArtistsLoading}
-                                onClick={findSimilarArtists}
-                            >
-                                Search
-                            </Button>
-                        </Space.Compact>
-                    </div>
-
-                    <div className="discoveryModeRow">
-                        <Text className="tinyMuted discoveryModeLabel">Discovery mode</Text>
-                        <div className="discoveryModeToggle" role="radiogroup" aria-label="Similar artist discovery mode">
-                            <button
-                                type="button"
-                                role="radio"
-                                aria-checked={discoveryMode === "blowing-up"}
-                                className={`discoveryModeOption discoveryModeBlowingUp${
-                                    discoveryMode === "blowing-up" ? " active" : ""
-                                }`}
-                                onClick={() => setDiscoveryMode("blowing-up")}
-                            >
-                                <FireOutlined className="discoveryModeIcon" />
-                                <span className="discoveryModeText">
-                                    <span className="discoveryModeName">Blowing Up</span>
-                                    <span className="discoveryModeDesc">Buzzing acts on the rise</span>
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="radio"
-                                aria-checked={discoveryMode === "hidden-gems"}
-                                className={`discoveryModeOption discoveryModeHiddenGems${
-                                    discoveryMode === "hidden-gems" ? " active" : ""
-                                }`}
-                                onClick={() => setDiscoveryMode("hidden-gems")}
-                            >
-                                <CompassOutlined className="discoveryModeIcon" />
-                                <span className="discoveryModeText">
-                                    <span className="discoveryModeName">Hidden Gems</span>
-                                    <span className="discoveryModeDesc">Deep cuts, off the radar</span>
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {similarArtistsLoading ? (
-                        <div style={{ paddingTop: 20 }}>
-                            <Skeleton active paragraph={{ rows: 4 }} />
-                        </div>
-                    ) : similarArtistsError ? (
-                        <div className="centerPad">
-                            <Text className="errorText">{similarArtistsError}</Text>
-                        </div>
-                    ) : similarArtistsSearched && similarArtists.length === 0 ? (
-                        <div style={{ paddingTop: 20 }}>
-                            <Empty description="No similar artists found." />
-                        </div>
-                    ) : sortedSimilarArtists.length > 0 ? (
-                        <div className="similarArtistsGrid">
-                            {sortedSimilarArtists.map((item, idx) => (
-                                <div className="similarArtistCard" key={item.name}>
-                                    <div className="similarArtistRank">{idx + 1}</div>
-                                    <div className="similarArtistBody">
-                                        <div className="similarArtistNameRow">
-                                            <Text strong className="similarArtistName">
-                                                {item.name}
-                                            </Text>
-                                            <Tooltip title="Similarity score">
-                                                <span className="similarArtistScore">{item.score}%</span>
-                                            </Tooltip>
-                                        </div>
-
-                                        <div className="similarArtistScoreBar">
-                                            <div
-                                                className="similarArtistScoreBarFill"
-                                                style={{ width: `${item.score}%` }}
-                                            />
-                                        </div>
-
-                                        <Text className="tinyMuted similarArtistReason">
-                                            {item.reason}
-                                        </Text>
-
-                                        {item.nextShow ? (
-                                            <div className="similarArtistShow">
-                                                <span className="similarArtistShowRow">
-                                                    <CalendarOutlined />
-                                                    <Text className="muted">{formatShowDate(item.nextShow)}</Text>
-                                                </span>
-                                                {item.nextShow.venue && (
-                                                    <span className="similarArtistShowRow">
-                                                        <EnvironmentOutlined />
-                                                        <Text className="muted">{item.nextShow.venue}</Text>
-                                                    </span>
-                                                )}
-                                                <a
-                                                    href={ticketSearchUrl(item.name)}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="similarArtistShowRow similarArtistTicketLink"
-                                                >
-                                                    <LinkOutlined />
-                                                    <Text className="muted">
-                                                        Find tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ""}
-                                                    </Text>
-                                                </a>
-                                                {item.showCount > 1 && (
-                                                    <Tag className="pillTag" color="blue">
-                                                        +{item.showCount - 1} more show{item.showCount - 1 > 1 ? "s" : ""}
-                                                    </Tag>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <Text className="tinyMuted">No upcoming show found.</Text>
-                                        )}
-                                    </div>
-
-                                    <Tooltip title="Listen on Spotify">
-                                        <Button
-                                            shape="circle"
-                                            className="ghostBtn similarArtistSpotifyBtn"
-                                            icon={<SpotifyOutlined />}
-                                            onClick={() =>
-                                                window.open(
-                                                    `https://open.spotify.com/search/${encodeURIComponent(item.name)}`,
-                                                    "_blank",
-                                                    "noreferrer"
-                                                )
-                                            }
-                                        />
-                                    </Tooltip>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="centerPad">
-                            <Text className="muted">Search for an artist above to get started.</Text>
-                        </div>
-                    )}
-                </Card>
-            </section>
-
-            <footer className="footer">
-                <Text className="tinyMuted">
-                    SF Bangers • Built for discovering live music in SF
-                </Text>
+            <footer className="splashFooter">
+                <p>Gigly — made for discovering live music.</p>
             </footer>
         </div>
     );

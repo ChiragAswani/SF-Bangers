@@ -1,8 +1,6 @@
 // spotifyHelpers.js
-// One-file drop-in: proactive global rate limiter + robust spotifyFetch + batched add-to-playlist
+// One-file drop-in: proactive global rate limiter + robust spotifyFetch
 // Uses node-fetch in Node < 18. In Node 18+, global fetch exists, so node-fetch is optional.
-
-const SPOTIFY_API = "https://api.spotify.com/v1";
 
 // ---- fetch setup (Node 18+ has global fetch) ----
 let fetchFn = globalThis.fetch;
@@ -14,11 +12,6 @@ if (!fetchFn) {
 // ---- tiny helpers ----
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const shorten = (s, n = 200) => (!s ? "" : s.length > n ? s.slice(0, n) + "…" : s);
-const chunk = (arr, size) => {
-    const out = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
-};
 
 // ---- proactive global limiter (adaptive) ----
 class SpotifyLimiter {
@@ -241,107 +234,4 @@ async function spotifyFetch(url, accessToken, options = {}) {
     );
 }
 
-// ---- main function: searches each artist, collects uris, adds in batches of 100 ----
-async function generatePlaylistTop5PerArtist(accessToken, artistNames, name, description, opts = {}) {
-    const {
-        public: isPublic = true,
-        perArtistLimit = 1,   // how many tracks you pull per artist from search
-        addChunkSize = 100,    // max 100 per Spotify add-items request
-        debug = true,
-    } = opts;
-
-    const playlist = await spotifyFetch(`${SPOTIFY_API}/me/playlists`, accessToken, {
-        method: "POST",
-        body: JSON.stringify({ name, description, public: isPublic }),
-        label: "create-playlist",
-        debug,
-    });
-
-    const playlistId = playlist.id;
-
-    const allUris = [];
-    const perArtistResults = [];
-    const allArtists = [];
-    for (const artist of artistNames) {
-        const q = encodeURIComponent(`artist:"${artist}"`);
-        const url = `${SPOTIFY_API}/search?q=${q}&type=track&limit=${perArtistLimit}`;
-
-        try {
-            const res = await spotifyFetch(url, accessToken, {
-                method: "GET",
-                label: `search:${artist}`,
-                debug,
-            });
-
-            const uris = (res?.tracks?.items || []).map((t) => t.uri).filter(Boolean);
-            if (!uris.length) {
-                if (debug) console.log(`⚠️ No tracks found for ${artist}`);
-                perArtistResults.push({ artist, added: 0, reason: "no_tracks" });
-                continue;
-            }
-            if (res.tracks && res.tracks.items && res.tracks.items.length) {
-                for (const i of res.tracks.items) {
-                    if (i.artists && i.artists.length) {
-                        for (const a of i.artists) {
-                            if (!allArtists.includes(a.id)) allArtists.push(a.id);
-                        }
-                    }
-                }
-            }
-            allUris.push(...uris);
-            perArtistResults.push({ artist, added: uris.length, reason: "queued" });
-        } catch (e) {
-            console.log(`Unable to search tracks for ${artist}: ${e.message}`);
-            perArtistResults.push({ artist, added: 0, reason: "search_error" });
-        }
-    }
-
-    // de-dupe URIs while preserving order (optional but usually nice)
-    const seen = new Set();
-    const uniqueUris = [];
-    for (const uri of allUris) {
-        if (!seen.has(uri)) {
-            seen.add(uri);
-            uniqueUris.push(uri);
-        }
-    }
-
-    // Add in batches (<=100)
-    const chunks = chunk(uniqueUris, Math.min(addChunkSize, 100));
-    let addedTotal = 0;
-
-    for (const urisChunk of chunks) {
-        try {
-            await spotifyFetch(`${SPOTIFY_API}/playlists/${playlistId}/items`, accessToken, {
-                method: "POST",
-                body: JSON.stringify({ uris: urisChunk }),
-                label: `add:${urisChunk.length}`,
-                debug,
-            });
-            addedTotal += urisChunk.length;
-        } catch (e) {
-            console.log(`Unable to add chunk of ${urisChunk.length} tracks`, e.message);
-            // continue; you could also retry manually here, but spotifyFetch already does
-        }
-    }
-
-    if (debug) {
-        console.log(
-            `🎉 Playlist complete: ${playlistId}\n` +
-            `   artists: ${artistNames.length}\n` +
-            `   tracks queued: ${allUris.length}\n` +
-            `   tracks unique: ${uniqueUris.length}\n` +
-            `   tracks added (attempted): ${addedTotal}`
-        );
-    }
-
-    return {
-        playlistId,
-        addedTotal,
-        uniqueTrackCount: uniqueUris.length,
-        perArtistResults,
-        allArtists
-    };
-}
-
-module.exports = { spotifyFetch, generatePlaylistTop5PerArtist };
+module.exports = { spotifyFetch };

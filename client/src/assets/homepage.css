@@ -1,855 +1,393 @@
-/* homepage.css */
+/* homepage.css — single splash page, mirrors the Gigly mobile app's look & feel */
 
 :root {
-    --bg0: #070a12;
-    --bg1: #0b1020;
-    --card: rgba(255, 255, 255, 0.08);
-    --card2: rgba(255, 255, 255, 0.05);
-    --stroke: rgba(255, 255, 255, 0.12);
-    --text: rgba(255, 255, 255, 0.92);
-    --muted: rgba(255, 255, 255, 0.68);
-    --muted2: rgba(255, 255, 255, 0.52);
-    --shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
-    --radius: 18px;
+    --bg: #FBF1E2;
+    --surface: #FFFFFF;
+    --ink: #2B2333;
+    --muted: #6E6275;
+    --muted2: #9C90A2;
+    --border: rgba(43, 35, 51, 0.14);
+    --border-strong: rgba(43, 35, 51, 0.22);
+    --primary: #FF6F59;
+    --primary-ink: #2B2333;
+
+    --coral: #FF6F59;
+    --teal: #1FB6A6;
+    --mustard: #FFC145;
+    --violet: #7B6FD1;
+    --rose: #FF7FA6;
+    --sage: #6FB56A;
+
+    --font-display: "Fredoka", ui-rounded, sans-serif;
+    --font-body: "Quicksand", ui-sans-serif, sans-serif;
 }
 
 * {
     box-sizing: border-box;
 }
 
-body {
+html, body {
     margin: 0;
     min-height: 100vh;
-    color: var(--text);
-    background: radial-gradient(900px 600px at 20% 10%, rgba(126, 231, 135, 0.14), transparent 60%),
-    radial-gradient(900px 600px at 80% 20%, rgba(56, 189, 248, 0.12), transparent 60%),
-    radial-gradient(900px 600px at 70% 90%, rgba(167, 139, 250, 0.12), transparent 60%),
-    linear-gradient(180deg, var(--bg0), var(--bg1));
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Apple Color Emoji", "Segoe UI Emoji";
+    width: 100%;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
 }
 
-.pageShell {
+.splashShell {
+    position: relative;
     min-height: 100vh;
-    padding: 22px 18px 14px;
-    position: relative;
-    overflow: hidden;
-}
-
-.bgGlow {
-    position: absolute;
-    filter: blur(60px);
-    opacity: 0.9;
-    pointer-events: none;
-    transform: translateZ(0);
-}
-
-.bgGlowA {
-    width: 520px;
-    height: 520px;
-    left: -160px;
-    top: -170px;
-    background: radial-gradient(circle at 30% 30%, rgba(126, 231, 135, 0.35), transparent 55%);
-}
-
-.bgGlowB {
-    width: 560px;
-    height: 560px;
-    right: -200px;
-    bottom: -220px;
-    background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.28), transparent 55%);
-}
-
-/* Top bar */
-.topBar {
-    max-width: 1120px;
-    margin: 0 auto 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-}
-
-.brandRow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 240px;
-}
-
-.brandLogo {
-    width: 54px;
-    height: 54px;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
-}
-
-.brandText {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
-}
-
-.brandTitle {
-    margin: 0 !important;
-    color: var(--text) !important;
-    letter-spacing: 0.2px;
-}
-
-.brandSubtitle {
-    color: var(--muted) !important;
-    font-size: 12.5px;
-}
-
-.topBarActions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-/* Hero explainer card */
-.heroSection {
-    max-width: 1120px;
-    margin: 0 auto 18px;
-}
-
-.heroCard {
-    position: relative;
-    overflow: hidden;
-}
-
-.heroGlow {
-    position: absolute;
-    top: -120px;
-    right: -100px;
-    width: 360px;
-    height: 360px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(29, 185, 84, 0.22), transparent 70%);
-    pointer-events: none;
-}
-
-.heroCardInner {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: 1fr 1.3fr;
-    gap: 34px;
-    align-items: center;
-    padding: 32px;
-}
-
-.heroIntro {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.heroTitle {
-    color: var(--text) !important;
-    font-size: clamp(24px, 2.6vw, 32px) !important;
-    font-weight: 800 !important;
-    line-height: 1.18 !important;
-    margin: 4px 0 4px !important;
-}
-
-.heroSubtitle {
-    color: var(--muted) !important;
-    font-size: 14.5px;
-    line-height: 1.6;
-    max-width: 440px;
-}
-
-.heroCtaLink {
-    margin-top: 10px;
-}
-
-.heroCta {
-    border-radius: 999px !important;
-    height: 46px !important;
-    padding: 0 26px !important;
-    font-weight: 700 !important;
-}
-
-.heroSteps {
-    display: flex;
-    align-items: stretch;
-    gap: 4px;
-}
-
-.heroStep {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    background: var(--card2);
-    border: 1px solid var(--stroke);
-    border-radius: 16px;
-    padding: 18px 16px;
-}
-
-.heroStepIcon {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17px;
-    color: #06120a;
+    overflow: hidden;
+    padding: 48px 32px;
 }
 
-.heroStepIconA {
-    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+/* Soft scattered color blobs — the web echo of the app's GlowBackground */
+.blob {
+    position: absolute;
+    border-radius: 999px;
+    opacity: 0.18;
+    filter: blur(2px);
+    pointer-events: none;
 }
 
-.heroStepIconB {
-    background: linear-gradient(135deg, #1DB954, #17a34a);
+.blobA {
+    width: 480px;
+    height: 480px;
+    top: -180px;
+    left: -160px;
+    background: var(--teal);
 }
 
-.heroStepIconC {
-    background: linear-gradient(135deg, #a78bfa, #7c3aed);
-    color: #fff;
+.blobB {
+    width: 420px;
+    height: 420px;
+    top: -80px;
+    right: -160px;
+    background: var(--mustard);
 }
 
-.heroStepTitle {
-    color: var(--text) !important;
-    font-size: 13.5px;
+.blobC {
+    width: 560px;
+    height: 560px;
+    bottom: -260px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--rose);
+    opacity: 0.14;
 }
 
-.heroStepDesc {
-    color: var(--muted2) !important;
-    font-size: 12px;
-    line-height: 1.5;
+.splashContent {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1080px;
+    min-width: 0;
+    animation: riseIn 0.6s ease both;
 }
 
-.heroStepArrow {
-    flex: none;
-    width: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted2);
-    font-size: 18px;
-}
-
-.heroStepArrow::after {
-    content: "\203A";
-}
-
-@media (max-width: 860px) {
-    .heroCardInner {
-        grid-template-columns: 1fr;
-        padding: 26px 22px;
+@keyframes riseIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
     }
-
-    .heroSubtitle {
-        max-width: none;
-    }
-}
-
-@media (max-width: 640px) {
-    .heroSteps {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .heroStepArrow {
-        display: none;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-/* Layout grid */
-.grid {
-    max-width: 1120px;
-    margin: 0 auto;
+/* Two-column hero: copy + CTA on one side, phone mockup on the other */
+.heroGrid {
     display: grid;
-    grid-template-columns: 1.35fr 0.95fr;
-    gap: 14px;
+    grid-template-columns: 1.05fr 0.95fr;
     align-items: start;
+    gap: 40px;
+    width: 100%;
 }
 
-.leftCol,
-.rightCol {
+.heroText {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    align-items: flex-start;
+    text-align: left;
+    min-width: 0;
+    padding-top: 18px;
 }
 
-.archivesCard {
-    /* Height is set explicitly via JS (measured from the playlist card) — CSS
-       stretch/flex-grow can only grow a shorter column, it can't shrink and clip
-       a naturally-tall one, so an exact pixel height is the only reliable fix. */
-    overflow: hidden;
+.brandLockup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 
-.card {
-    border-radius: var(--radius) !important;
-    border: 1px solid var(--stroke) !important;
-    box-shadow: var(--shadow);
+.brandIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    box-shadow: 0 8px 16px rgba(43, 35, 51, 0.18);
 }
 
-.glass {
-    background: linear-gradient(180deg, var(--card), var(--card2)) !important;
-    backdrop-filter: blur(12px);
+.chipRow {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.chip {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    transform: rotate(-4deg);
+}
+
+.chipCoral {
+    background: var(--coral);
+}
+
+.chipTeal {
+    background: var(--teal);
+}
+
+.chipMustard {
+    background: var(--mustard);
+}
+
+.chipRose {
+    background: var(--rose);
 }
 
 .eyebrow {
-    color: var(--muted2) !important;
-    font-size: 12px;
-    letter-spacing: 0.2px;
+    margin: 0;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
 }
 
-.cardHeader {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 12px;
+.headline {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(32px, 4.2vw, 48px);
+    line-height: 1.12;
 }
 
-.titleRow {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.subhero {
+    margin: 16px 0 28px;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 1.55;
+    max-width: 440px;
 }
 
-.cardTitle {
-    margin: 4px 0 0 0 !important;
-    color: var(--text) !important;
-}
-
-.muted {
-    color: var(--muted) !important;
-    display: inline-block;
-    margin-top: 2px;
-}
-
-.tinyMuted {
-    color: var(--muted2) !important;
-    font-size: 12px;
-    display: inline-block;
-    margin-top: 10px;
-}
-
-/* Hint box */
-.hintBox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(0, 0, 0, 0.16);
-    min-width: 230px;
-}
-
-/* Spotify frame */
-.spotifyFrame {
-    width: 100%;
-    height: 420px;
-    border: 0;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.30);
-}
-
-/* Active footer buttons */
-.activeFooter {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-}
-
-/* Section titles */
-.sectionTitleRow {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.sectionTitle {
-    margin: 0 !important;
-    color: var(--text) !important;
-}
-
-/* Search input */
-.archiveSearch {
-    width: 250px;
-}
-
-/* Empty/error */
-.centerPad {
-    padding: 26px 0;
-    text-align: center;
-}
-
-.errorText {
-    color: #ffb4b4;
-}
-
-/* Ant Design controls polish */
-.ant-typography a {
-    color: rgba(56, 189, 248, 0.95) !important;
-}
-
-.ant-input,
-.ant-input-affix-wrapper {
-    border-radius: 12px !important;
-    background: rgba(255, 255, 255, 0.09) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    color: var(--text) !important;
-}
-
-.ant-input::placeholder {
-    color: rgba(255, 255, 255, 0.45) !important;
-}
-
-.ant-btn-primary {
-    border-radius: 12px !important;
-    font-weight: 750;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.26);
-}
-
-.ghostBtn {
-    border-radius: 12px !important;
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    color: var(--text) !important;
-}
-
-.ghostBtn:hover {
-    background: rgba(255, 255, 255, 0.10) !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
-}
-
-/* Tag pill */
-.pillTag {
-    border-radius: 999px !important;
-    padding: 0 10px !important;
-    font-weight: 700 !important;
-}
-
-/* Archives list */
-.archivesList {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    border-radius: 14px;
-    scrollbar-width: thin;
-}
-
-.archivesList::-webkit-scrollbar {
-    width: 6px;
-}
-
-.archivesList::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
-}
-
-.archiveRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    transition: background 0.15s ease;
-}
-
-.archiveRow:first-child {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.archiveRow:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.archiveRowLink {
+/* Pill CTA — same shape/weight language as the mobile app's PrimaryButton */
+.appStoreBtn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    color: rgba(126, 231, 135, 0.96) !important;
-    font-weight: 650;
-    text-decoration: none;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    gap: 12px;
+    padding: 12px 26px;
+    border-radius: 999px;
+    border: 2px solid var(--primary-ink);
+    background: var(--primary);
+    color: var(--primary-ink);
+    cursor: default;
+    user-select: none;
 }
 
-.archiveRowLink:hover {
-    text-decoration: underline;
+.appStoreBtnText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
 }
 
-.tableFooter {
-    margin-top: 17px;
+.appStoreBtnSmall {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    opacity: 0.85;
 }
 
-/* Similar artists */
-.similarArtistsSection {
-    max-width: 1120px;
-    margin: 14px auto 0;
+.appStoreBtnBig {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
 }
 
-.similarArtistsCard {
+.ctaNote {
+    margin: 12px 0 0;
+    color: var(--muted2);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+}
+
+/* Phone mockup */
+.heroPhoneWrap {
     position: relative;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 20px;
 }
 
-.similarArtistsCard::before {
-    content: "";
+.phoneGlow {
     position: absolute;
-    inset: 0;
-    background: radial-gradient(680px 280px at 15% -10%, rgba(167, 139, 250, 0.16), transparent 60%),
-    radial-gradient(680px 280px at 100% 0%, rgba(126, 231, 135, 0.12), transparent 60%);
+    width: 420px;
+    height: 420px;
+    max-width: 90%;
+    border-radius: 999px;
+    background: radial-gradient(circle, var(--violet), transparent 70%);
+    opacity: 0.28;
+    filter: blur(36px);
+    z-index: 0;
     pointer-events: none;
 }
 
-.similarArtistsHeader {
+.phoneMockup {
     position: relative;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
+    z-index: 1;
+    display: inline-block;
+    font-size: 0;
+    background: var(--ink);
+    border-radius: 40px;
+    padding: 14px;
+    box-shadow: 0 30px 60px rgba(43, 35, 51, 0.28), 0 10px 22px rgba(43, 35, 51, 0.18);
 }
 
-.similarArtistsTitle {
-    margin: 4px 0 6px 0 !important;
-}
-
-.similarArtistsSearch {
-    width: 420px;
-    max-width: 100%;
-}
-
-.discoveryModeRow {
+.phoneScreen {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-}
-
-.discoveryModeLabel {
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    font-weight: 750;
-    margin-top: 0 !important;
-}
-
-.discoveryModeToggle {
-    display: inline-flex;
-    gap: 6px;
-    padding: 4px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-}
-
-.discoveryModeOption {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 16px 7px 12px;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: left;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
-}
-
-.discoveryModeOption:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.discoveryModeOption:active {
-    transform: scale(0.97);
-}
-
-.discoveryModeIcon {
-    font-size: 16px;
-    flex: 0 0 auto;
-    color: var(--muted2);
-    transition: color 0.18s ease;
-}
-
-.discoveryModeText {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.2;
-}
-
-.discoveryModeName {
-    font-size: 12.5px;
-    font-weight: 750;
-    color: var(--text);
-}
-
-.discoveryModeDesc {
-    font-size: 11px;
-    color: var(--muted2);
-}
-
-.discoveryModeBlowingUp.active {
-    background: linear-gradient(135deg, rgba(126, 231, 135, 0.22), rgba(56, 189, 248, 0.16));
-    border-color: rgba(126, 231, 135, 0.45);
-    box-shadow: 0 8px 20px rgba(126, 231, 135, 0.14);
-}
-
-.discoveryModeBlowingUp.active .discoveryModeIcon {
-    color: rgba(126, 231, 135, 0.95);
-}
-
-.discoveryModeHiddenGems.active {
-    background: linear-gradient(135deg, rgba(167, 139, 250, 0.26), rgba(56, 189, 248, 0.12));
-    border-color: rgba(167, 139, 250, 0.5);
-    box-shadow: 0 8px 20px rgba(167, 139, 250, 0.16);
-}
-
-.discoveryModeHiddenGems.active .discoveryModeIcon {
-    color: rgba(167, 139, 250, 0.95);
-}
-
-.similarArtistsGrid {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
-}
-
-.similarArtistCard {
-    position: relative;
-    display: flex;
-    gap: 12px;
-    padding: 14px 44px 14px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(255, 255, 255, 0.05);
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-
-.similarArtistCard:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-1px);
-}
-
-.similarArtistRank {
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 12.5px;
-    color: var(--bg0);
-    background: linear-gradient(135deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
-}
-
-.similarArtistBody {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-.similarArtistSpotifyBtn {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    width: 30px !important;
-    height: 30px !important;
-    min-width: 30px;
-    padding: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(126, 231, 135, 0.96) !important;
-}
-
-.similarArtistSpotifyBtn:hover {
-    border-color: rgba(126, 231, 135, 0.45) !important;
-    background: rgba(126, 231, 135, 0.14) !important;
-}
-
-.similarArtistNameRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.similarArtistName {
-    color: var(--text) !important;
-    font-size: 15px;
-}
-
-.similarArtistScore {
-    flex: 0 0 auto;
-    font-size: 11.5px;
-    font-weight: 800;
-    letter-spacing: 0.2px;
-    color: rgba(7, 10, 18, 0.92);
-    background: linear-gradient(135deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
-    border-radius: 999px;
-    padding: 2px 9px;
-}
-
-.similarArtistScoreBar {
-    width: 100%;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.10);
+    display: block;
+    border-radius: 28px;
     overflow: hidden;
-    margin: 6px 0 2px;
+    background: #000;
+    line-height: 0;
 }
 
-.similarArtistScoreBarFill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(126, 231, 135, 0.95), rgba(56, 189, 248, 0.95));
+/* The <img> is the single source of truth for size — a fixed height plus
+   its own aspect-ratio, so the frame around it always shrink-wraps exactly.
+   Driving this from a div's auto/auto + aspect-ratio instead (the previous
+   approach) is unreliable across browsers and was causing the bottom edge
+   to spill past the rounded corners. */
+.phoneScreen img {
+    display: block;
+    height: min(600px, 58vh);
+    width: auto;
+    max-width: 78vw;
+    aspect-ratio: 1179 / 2556;
+    object-fit: cover;
 }
 
-.similarArtistReason {
-    margin-top: 0 !important;
-    line-height: 1.4;
+.phoneSideButtonLeft1,
+.phoneSideButtonLeft2,
+.phoneSideButtonRight {
+    position: absolute;
+    background: var(--ink);
 }
 
-.similarArtistShow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    margin-top: 8px;
+.phoneSideButtonLeft1,
+.phoneSideButtonLeft2 {
+    left: -3px;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
 }
 
-.similarArtistShowRow {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--muted);
+.phoneSideButtonLeft1 {
+    top: 19%;
+    height: 6%;
+}
+
+.phoneSideButtonLeft2 {
+    top: 28%;
+    height: 11%;
+}
+
+.phoneSideButtonRight {
+    right: -3px;
+    top: 23%;
+    width: 3px;
+    height: 9%;
+    border-radius: 0 3px 3px 0;
+}
+
+.splashFooter {
+    position: relative;
+    z-index: 1;
+    margin-top: 48px;
+}
+
+.splashFooter p {
+    margin: 0;
+    color: var(--muted2);
+    font-family: var(--font-body);
+    font-weight: 500;
     font-size: 12.5px;
 }
 
-.similarArtistShowRow .anticon {
-    color: rgba(126, 231, 135, 0.9);
-}
-
-.similarArtistTicketLink {
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.similarArtistTicketLink:hover .ant-typography,
-.similarArtistTicketLink:hover .anticon {
-    color: rgba(126, 231, 135, 0.9);
-}
-
-.similarArtistTicketPending .anticon {
-    color: var(--muted);
-}
-
-.similarArtistTicketUnavailable {
-    opacity: 0.6;
-}
-
-.similarArtistTicketUnavailable .anticon {
-    color: var(--muted);
-}
-
-/* Footer */
-.footer {
-    max-width: 1120px;
-    margin: 12px auto 0;
-    text-align: center;
-}
-
-/* Responsive */
-@media (max-width: 980px) {
-    .grid {
+@media (max-width: 860px) {
+    .heroGrid {
         grid-template-columns: 1fr;
+        gap: 48px;
+        justify-items: center;
     }
-    .archiveSearch {
-        width: 100%;
+
+    .heroText {
+        align-items: center;
+        text-align: center;
     }
-    .hintBox {
-        min-width: unset;
+
+    .subhero {
+        max-width: none;
     }
-    .topBar {
-        flex-direction: column;
-        align-items: stretch;
+
+    .heroPhoneWrap {
+        order: -1;
     }
-    .topBarActions {
-        justify-content: flex-start;
-    }
-    .spotifyFrame {
-        height: 390px;
-    }
-    .similarArtistsHeader {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .similarArtistsSearch {
-        width: 100%;
-    }
-    .discoveryModeRow {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .discoveryModeToggle {
-        flex-direction: column;
-    }
-    .discoveryModeOption {
-        width: 100%;
+
+    .phoneScreen img {
+        height: auto;
+        width: min(300px, 68vw);
+        max-width: 68vw;
     }
 }
 
 @media (max-width: 520px) {
-    .pageShell {
-        padding: 16px 12px 12px;
+    .splashShell {
+        padding: 32px 20px;
     }
-    .brandLogo {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+
+    .brandIcon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
     }
-    .spotifyFrame {
-        height: 360px;
+
+    .subhero {
+        font-size: 15px;
+    }
+
+    .splashFooter {
+        margin-top: 32px;
     }
 }
 
-/* Remove the inner gray fill */
-.ant-input {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* Also remove inner wrapper fill if using affix wrapper (icon input) */
-.ant-input-affix-wrapper {
-    background: rgba(255,255,255,0.08) !important; /* your outer style */
-    border-radius: 999px !important;
-}
-
-/* Make the inside area blend with the outer wrapper */
-.ant-input-affix-wrapper > input.ant-input {
-    background: transparent !important;
+@media (prefers-reduced-motion: reduce) {
+    .splashContent {
+        animation: none;
+    }
 }
