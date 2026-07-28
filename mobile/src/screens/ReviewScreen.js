@@ -1,77 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import ViewShot from 'react-native-view-shot';
-import ArtistAvatar from '../components/ArtistAvatar';
 import LineupPoster from '../components/LineupPoster';
+import SimilarArtistCard from '../components/SimilarArtistCard';
 import { GhostButton, PrimaryButton } from '../components/Buttons';
-import { colors, fonts, houseColorForName, radii, spacing } from '../theme';
-import { formatShowDate } from '../utils/formatShowDate';
-import { ticketSearchUrl } from '../utils/ticketSearchUrl';
-
-function LineupCard({ item, onRemove }) {
-  const trim = houseColorForName(item.name);
-
-  const handleRemove = () => {
-    Haptics.selectionAsync().catch(() => {});
-    onRemove();
-  };
-
-  const handleTicketPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    Linking.openURL(ticketSearchUrl(item.name)).catch(() => {});
-  };
-
-  return (
-    <View style={[styles.card, { borderColor: trim.bg }]}>
-      <Pressable onPress={handleRemove} style={styles.removeBadge} hitSlop={8}>
-        <Ionicons name="close" size={13} color="#FFFFFF" />
-      </Pressable>
-
-      <View style={styles.cardTop}>
-        <ArtistAvatar uri={item.image} name={item.name} size={52} />
-        <View style={styles.cardHeadline}>
-          <Text style={styles.cardName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          {item.matchedSeed ? (
-            <Text style={[styles.cardSeed, { color: trim.bg }]} numberOfLines={1}>
-              Similar to {item.matchedSeed}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {item.nextShow ? (
-        <View style={styles.showBlock}>
-          <View style={styles.showRow}>
-            <Ionicons name="calendar-outline" size={13} color={colors.muted} />
-            <Text style={styles.showText}>{formatShowDate(item.nextShow)}</Text>
-          </View>
-          {item.nextShow.venue ? (
-            <View style={styles.showRow}>
-              <Ionicons name="location-outline" size={13} color={colors.muted} />
-              <Text style={styles.showText} numberOfLines={1}>
-                {item.nextShow.venue}
-              </Text>
-            </View>
-          ) : null}
-
-          <Pressable onPress={handleTicketPress} style={styles.showRow} hitSlop={6}>
-            <Ionicons name="link-outline" size={13} color={trim.bg} />
-            <Text style={[styles.ticketText, { color: trim.bg }]}>
-              Find tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
-            </Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Text style={styles.showTextMuted}>No upcoming show found.</Text>
-      )}
-    </View>
-  );
-}
+import { colors, fonts, radii, spacing } from '../theme';
 
 export default function ReviewScreen({
   items,
@@ -90,6 +27,28 @@ export default function ReviewScreen({
 
   function removeItem(name) {
     setLineup((prev) => prev.filter((it) => it.name !== name));
+  }
+
+  // one shared player for the whole screen so starting a new preview always
+  // stops whatever was playing before — never two clips at once
+  const player = useAudioPlayer(null, { updateInterval: 200 });
+  const playerStatus = useAudioPlayerStatus(player);
+  const [playingName, setPlayingName] = useState(null);
+
+  useEffect(() => {
+    if (playerStatus.didJustFinish) setPlayingName(null);
+  }, [playerStatus.didJustFinish]);
+
+  function togglePreview(name, previewUrl) {
+    if (!previewUrl) return;
+    if (playingName === name) {
+      if (playerStatus.playing) player.pause();
+      else player.play();
+      return;
+    }
+    player.replace(previewUrl);
+    player.play();
+    setPlayingName(name);
   }
 
   function confirmStartOver() {
@@ -138,9 +97,8 @@ export default function ReviewScreen({
     return (
       <View style={styles.stage}>
         <View style={styles.headerRow}>
-          <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-            <Ionicons name="chevron-back" size={16} color={colors.ink} />
-            <Text style={styles.backText}>Back</Text>
+          <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
+            <Ionicons name="chevron-back" size={15} color={colors.primary} />
           </Pressable>
           <Pressable onPress={confirmStartOver} hitSlop={8}>
             <Text style={styles.startOverText}>Start over</Text>
@@ -150,7 +108,7 @@ export default function ReviewScreen({
           <Text style={styles.mutedText}>You've cleared your whole lineup.</Text>
           <GhostButton
             label="Back to discovery"
-            onPress={onBack}
+            onPress={onStartOver}
             icon={<Ionicons name="arrow-back" size={16} color={colors.ink} />}
           />
         </View>
@@ -167,16 +125,17 @@ export default function ReviewScreen({
       </View>
 
       <View style={styles.headerRow}>
-        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-          <Ionicons name="chevron-back" size={16} color={colors.ink} />
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
+            <Ionicons name="chevron-back" size={15} color={colors.primary} />
+          </Pressable>
+          <Text style={styles.eyebrow}>Your lineup</Text>
+        </View>
         <Pressable onPress={confirmStartOver} hitSlop={8} disabled={generating}>
           <Text style={styles.startOverText}>Start over</Text>
         </Pressable>
       </View>
 
-      <Text style={styles.eyebrow}>Your lineup</Text>
       <Text style={styles.title}>Your lineup is ready</Text>
       <Text style={styles.subhero}>Real shows, real tickets — here's what you're about to discover.</Text>
 
@@ -196,9 +155,22 @@ export default function ReviewScreen({
       </View>
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {lineup.map((item) => (
-          <LineupCard key={item.name} item={item} onRemove={() => removeItem(item.name)} />
-        ))}
+        {lineup.map((item) => {
+          const isActive = playingName === item.name;
+          return (
+            <SimilarArtistCard
+              key={item.name}
+              item={item}
+              image={item.image}
+              preview={item.preview}
+              isActive={isActive}
+              isPlaying={isActive && playerStatus.playing}
+              progress={isActive && playerStatus.duration ? playerStatus.currentTime / playerStatus.duration : 0}
+              onRemove={() => removeItem(item.name)}
+              onTogglePlay={() => togglePreview(item.name, item.preview?.previewUrl)}
+            />
+          );
+        })}
       </ScrollView>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -219,7 +191,6 @@ export default function ReviewScreen({
               loading={generating}
               icon={<FontAwesome name="spotify" size={16} color={colors.primaryInk} />}
             />
-            <GhostButton label="Skip — just show me tickets" onPress={onSkip} disabled={generating} />
           </>
         )}
 
@@ -245,8 +216,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start' },
-  backText: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 14 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  backBtn: { alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   eyebrow: {
     color: colors.primary,
     fontFamily: fonts.bodyBold,
@@ -277,35 +248,6 @@ const styles = StyleSheet.create({
   statText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 12 },
   list: { flex: 1 },
   listContent: { paddingBottom: spacing.lg, paddingTop: spacing.sm },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 2,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-    gap: 6,
-  },
-  removeBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 1,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: 24 },
-  cardHeadline: { flex: 1, gap: 2 },
-  cardName: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 15 },
-  cardSeed: { fontFamily: fonts.bodySemibold, fontSize: 11 },
-  showBlock: { gap: 3, marginTop: 2 },
-  showRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  showText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12, flexShrink: 1 },
-  showTextMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 12 },
-  ticketText: { fontFamily: fonts.bodyBold, fontSize: 12 },
   emptyCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 14 },
   error: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },

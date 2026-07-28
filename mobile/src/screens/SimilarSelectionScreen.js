@@ -107,9 +107,8 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
   if (loading) {
     return (
       <View style={styles.stage}>
-        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-          <Ionicons name="chevron-back" size={16} color={colors.ink} />
-          <Text style={styles.backText}>Back</Text>
+        <Pressable onPress={onBack} style={[styles.backBtn, styles.backBtnStandalone]} hitSlop={12}>
+          <Ionicons name="chevron-back" size={15} color={colors.primary} />
         </Pressable>
         <DiscoveryLoader />
       </View>
@@ -118,13 +117,13 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 
   return (
     <View style={styles.stage}>
-      <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-        <Ionicons name="chevron-back" size={16} color={colors.ink} />
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
-
-      <Text style={styles.eyebrow}>Discover</Text>
-      <Text style={styles.title}>Similar artists playing in SF</Text>
+      <View style={styles.headerRow}>
+        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={15} color={colors.primary} />
+        </Pressable>
+        <Text style={styles.eyebrow}>Discover</Text>
+      </View>
+      <Text style={styles.title}>Artists playing in the Bay Area</Text>
       <Text style={styles.subhero}>
         Listen to a preview right here, then pick who you want to see and grab tickets.
       </Text>
@@ -184,8 +183,9 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
 
 const styles = StyleSheet.create({
   stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.sm, alignSelf: 'flex-start' },
-  backText: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 14 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  backBtn: { alignItems: 'center', justifyContent: 'center' },
+  backBtnStandalone: { alignSelf: 'flex-start', marginBottom: spacing.sm },
   eyebrow: {
     color: colors.primary,
     fontFamily: fonts.bodyBold,

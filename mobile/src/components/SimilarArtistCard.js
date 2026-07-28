@@ -57,7 +57,21 @@ function PreviewControl({ preview, isActive, isPlaying, progress, onTogglePlay, 
   );
 }
 
-export default function SimilarArtistCard({ item, image, preview, selected, isActive, isPlaying, progress, onToggle, onTogglePlay }) {
+// Two modes, both driven by whichever handler is passed in:
+// - onToggle/selected: browsing suggestions — tap the card to select it, shows a checkmark
+// - onRemove: already committed to the lineup — tap the badge to drop it, card itself is static
+export default function SimilarArtistCard({
+  item,
+  image,
+  preview,
+  selected,
+  isActive,
+  isPlaying,
+  progress,
+  onToggle,
+  onTogglePlay,
+  onRemove,
+}) {
   const trim = houseColorForName(item.name);
 
   const handlePress = () => {
@@ -65,20 +79,28 @@ export default function SimilarArtistCard({ item, image, preview, selected, isAc
     onToggle();
   };
 
+  const handleRemove = () => {
+    Haptics.selectionAsync().catch(() => {});
+    onRemove();
+  };
+
   const handleTicketPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     Linking.openURL(ticketSearchUrl(item.name)).catch(() => {});
   };
 
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={[styles.card, selected && { borderColor: trim.bg, backgroundColor: `${trim.bg}18` }]}
-    >
-      {selected && (
-        <View style={styles.checkBadge}>
-          <Ionicons name="checkmark-circle" size={20} color={trim.bg} />
-        </View>
+  const inner = (
+    <>
+      {onRemove ? (
+        <Pressable onPress={handleRemove} style={styles.removeBadge} hitSlop={8}>
+          <Ionicons name="close" size={13} color="#FFFFFF" />
+        </Pressable>
+      ) : (
+        selected && (
+          <View style={styles.checkBadge}>
+            <Ionicons name="checkmark-circle" size={20} color={trim.bg} />
+          </View>
+        )
       )}
 
       <View style={styles.top}>
@@ -154,6 +176,19 @@ export default function SimilarArtistCard({ item, image, preview, selected, isAc
       ) : (
         <Text style={styles.showTextMuted}>No upcoming show found.</Text>
       )}
+    </>
+  );
+
+  if (onRemove) {
+    return <View style={styles.card}>{inner}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      style={[styles.card, selected && { borderColor: trim.bg, backgroundColor: `${trim.bg}18` }]}
+    >
+      {inner}
     </Pressable>
   );
 }
@@ -174,6 +209,18 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     zIndex: 1,
+  },
+  removeBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headline: { flex: 1, gap: 2 },

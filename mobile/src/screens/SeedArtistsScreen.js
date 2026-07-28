@@ -145,13 +145,14 @@ export default function SeedArtistsScreen({
 
   return (
     <View style={styles.stage}>
-      <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-        <Ionicons name="chevron-back" size={16} color={colors.ink} />
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <View style={styles.headerRow}>
+        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
+          <Ionicons name="chevron-back" size={15} color={colors.primary} />
+        </Pressable>
+        <Text style={styles.eyebrow}>Your Artists</Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>Your Artists</Text>
         <Text style={styles.title}>Who do you want similar shows for?</Text>
         <Text style={styles.subhero}>Search as many as you like, or tap in favorites from your Spotify below.</Text>
 
@@ -240,8 +241,8 @@ export default function SeedArtistsScreen({
 
 const styles = StyleSheet.create({
   stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: spacing.sm, alignSelf: 'flex-start' },
-  backText: { color: colors.ink, fontFamily: fonts.bodySemibold, fontSize: 14 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  backBtn: { alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingBottom: spacing.xl * 2 },
   eyebrow: {
     color: colors.primary,

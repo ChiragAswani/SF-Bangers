@@ -14,11 +14,9 @@ import GlowBackground from './GlowBackground';
 import { fonts, house, spacing } from '../theme';
 
 const PHRASES = [
-  'Finding similar artists…',
   'Discovering new music for you…',
-  'Matching your vibe…',
-  "Digging through SF's show calendar…",
-  'Hunting for hidden gems…',
+  'Matching your music preferences…',
+  'Hunting for hidden gems and popular artists…',
   'Curating your next favorite artist…',
   "Scouting who's playing near you…",
   'Connecting the dots between artists…',
