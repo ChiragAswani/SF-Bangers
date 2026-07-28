@@ -22,9 +22,9 @@ const fs = require('fs');
             file.homepage = './'
         }
         if (NODE_ENV === 'prod') {
-            obj.BACKEND_URL = 'https://sfbangers.com'
-            obj.FRONTEND_URL = 'https://sfbangers.com'
-            file.homepage = 'https://sf-bangers.appspot.com'
+            obj.BACKEND_URL = 'https://getgigly.io'
+            obj.FRONTEND_URL = 'https://getgigly.io'
+            file.homepage = 'https://getgigly.io'
         }
         fs.writeFile('../client/src/env.json', JSON.stringify(obj), 'utf8', () => {});
         fs.writeFile('../vars/env.json', JSON.stringify(obj), 'utf8', () => {});
