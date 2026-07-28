@@ -23,7 +23,7 @@ export default function ResultScreen({ playlistId, onDone }) {
       <Animated.View entering={ZoomIn.duration(400)} style={styles.content}>
         <Ionicons name="checkmark-circle" size={56} color={house[5].bg} />
         <Text style={styles.eyebrow}>All done</Text>
-        <Text style={styles.hero}>{playlistId ? 'Your SF mix is ready' : 'Nice picks'}</Text>
+        <Text style={styles.hero}>{playlistId ? 'Your Gigly mix is ready' : 'Nice picks'}</Text>
         <Text style={styles.subhero}>
           {playlistId
             ? 'One track from each artist you picked, saved straight to your Spotify.'
