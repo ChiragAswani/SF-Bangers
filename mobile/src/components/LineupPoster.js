@@ -40,7 +40,7 @@ export default function LineupPoster({ items }) {
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.footer}>Discover yours at getgigly.io</Text>
+      <Text style={styles.footer}>Discover yours at giglymusic.com</Text>
     </View>
   );
 }
