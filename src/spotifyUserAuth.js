@@ -4,6 +4,12 @@ const SESSION_SCOPES = [
     "user-top-read",
     "playlist-modify-private",
     "playlist-modify-public",
+    // Added for the Spotify Prewrapped page — library counts, recently played,
+    // and followed shows all need their own explicit scope beyond user-top-read.
+    "user-follow-read",
+    "user-library-read",
+    "user-read-recently-played",
+    "playlist-read-private",
 ].join(" ");
 
 // access tokens are refreshed a bit early so a request never races an expiry mid-flight

@@ -236,6 +236,12 @@ html, body {
     font-size: 13px;
 }
 
+.ctaNoteLink {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: underline;
+}
+
 /* Phone mockup */
 .heroPhoneWrap {
     position: relative;

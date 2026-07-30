@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import giglyIcon from "./assets/gigly-icon.png";
 import appScreenshot from "./assets/app-screenshot.png";
 import "./assets/homepage.css";
@@ -52,6 +53,13 @@ export default function HomePage() {
                                 <span className="appStoreBtnBig">App Store</span>
                             </span>
                         </div>
+
+                        <p className="ctaNote" style={{ marginTop: 20 }}>
+                            Want to see your Spotify Prewrapped?{" "}
+                            <Link to="/spotify-prewrapped" className="ctaNoteLink">
+                                Click here
+                            </Link>
+                        </p>
                     </div>
 
                     <div className="heroPhoneWrap">

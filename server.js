@@ -118,7 +118,7 @@ app.get('/auth/spotify/callback', async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.redirect(`${env.FRONTEND_URL}/generate?connected=1`);
+        return res.redirect(`${env.FRONTEND_URL}/spotify-prewrapped?connected=1`);
     } catch (err) {
         console.error('spotify callback error:', err);
         return res.status(500).send('Spotify login failed — please try again.');
@@ -170,6 +170,150 @@ app.get('/generate/top-artists', async (req, res) => {
         return res.status(200).json({ artists: pool });
     } catch (err) {
         console.error('top-artists error:', err);
+        return res.status(500).json({ error: err?.message || String(err) });
+    }
+});
+
+app.get('/generate/wrapped-stats', async (req, res) => {
+    try {
+        const sessionId = getSessionId(req, SESSION_COOKIE);
+        const accessToken = await getValidAccessTokenForSession(db, sessionId);
+        if (!accessToken) return res.status(401).json({ error: 'Not connected to Spotify' });
+
+        // Spotify locked audio-features/audio-analysis/related-artists/recommendations
+        // behind Extended Quota Mode in Nov 2024 — everything below is still open in
+        // Development Mode as of the Feb 2026 changelog. Non-essential calls are
+        // individually soft-failed so one missing scope/empty library doesn't take
+        // down the whole page.
+        const soft = (url, label) =>
+            spotifyFetch(url, accessToken, { label, debug: false }).catch(() => null);
+
+        // Spotify doesn't expose true calendar-year listening data via the public
+        // API (that's what powers their official December Wrapped) — medium_term
+        // (~last 6 months) is the closest available proxy for "this year so far".
+        const [
+            profileResp,
+            artistsMedium,
+            artistsShort,
+            artistsLong,
+            tracksResp,
+            recentResp,
+            likedResp,
+            albumsResp,
+            followingResp,
+            playlistsResp,
+            showsResp,
+        ] = await Promise.all([
+            soft('https://api.spotify.com/v1/me', 'wrapped:profile'),
+            spotifyFetch('https://api.spotify.com/v1/me/top/artists?time_range=medium_term&limit=10', accessToken, {
+                label: 'wrapped:artists:medium',
+                debug: false,
+            }),
+            soft('https://api.spotify.com/v1/me/top/artists?time_range=short_term&limit=20', 'wrapped:artists:short'),
+            soft('https://api.spotify.com/v1/me/top/artists?time_range=long_term&limit=50', 'wrapped:artists:long'),
+            spotifyFetch('https://api.spotify.com/v1/me/top/tracks?time_range=medium_term&limit=10', accessToken, {
+                label: 'wrapped:tracks',
+                debug: false,
+            }),
+            soft('https://api.spotify.com/v1/me/player/recently-played?limit=50', 'wrapped:recent'),
+            soft('https://api.spotify.com/v1/me/tracks?limit=1', 'wrapped:liked-count'),
+            soft('https://api.spotify.com/v1/me/albums?limit=1', 'wrapped:albums-count'),
+            soft('https://api.spotify.com/v1/me/following?type=artist&limit=1', 'wrapped:following-count'),
+            soft('https://api.spotify.com/v1/me/playlists?limit=1', 'wrapped:playlists-count'),
+            soft('https://api.spotify.com/v1/me/shows?limit=10', 'wrapped:shows'),
+        ]);
+
+        const topArtists = (artistsMedium?.items || []).map((a) => ({
+            id: a.id,
+            name: a.name,
+            image: a.images?.[0]?.url || null,
+            genres: a.genres || [],
+            popularity: a.popularity ?? null,
+        }));
+
+        const topTracks = (tracksResp?.items || []).map((t) => ({
+            id: t.id,
+            name: t.name,
+            artist: (t.artists || []).map((a) => a.name).join(', '),
+            image: t.album?.images?.[0]?.url || null,
+            popularity: t.popularity ?? null,
+        }));
+
+        const genreCounts = new Map();
+        for (const a of topArtists) {
+            for (const g of a.genres) {
+                genreCounts.set(g, (genreCounts.get(g) || 0) + 1);
+            }
+        }
+        const topGenres = [...genreCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([genre]) => genre);
+
+        // "New in rotation" — artists showing up in your recent (short_term) top
+        // list that aren't part of your long-standing (long_term) favorites yet.
+        const longTermNames = new Set((artistsLong?.items || []).map((a) => a.name.toLowerCase()));
+        const newArtists = (artistsShort?.items || [])
+            .filter((a) => !longTermNames.has(a.name.toLowerCase()))
+            .slice(0, 6)
+            .map((a) => ({ id: a.id, name: a.name, image: a.images?.[0]?.url || null }));
+
+        // "On repeat" — whichever track shows up most in your last 50 plays.
+        let onRepeat = null;
+        const recentItems = recentResp?.items || [];
+        if (recentItems.length > 0) {
+            const counts = new Map();
+            for (const item of recentItems) {
+                const track = item.track;
+                if (!track?.id) continue;
+                const entry = counts.get(track.id) || { track, count: 0 };
+                entry.count += 1;
+                counts.set(track.id, entry);
+            }
+            const top = [...counts.values()].sort((a, b) => b.count - a.count)[0];
+            if (top && top.count > 1) {
+                onRepeat = {
+                    name: top.track.name,
+                    artist: (top.track.artists || []).map((a) => a.name).join(', '),
+                    image: top.track.album?.images?.[0]?.url || null,
+                    count: top.count,
+                };
+            }
+        }
+
+        // "Mainstream meter" — average of the popularity scores (0-100, Spotify's
+        // own metric) already attached to the top artists/tracks responses above.
+        const popularityValues = [...topArtists, ...topTracks]
+            .map((x) => x.popularity)
+            .filter((p) => typeof p === 'number');
+        const mainstreamScore = popularityValues.length
+            ? Math.round(popularityValues.reduce((sum, p) => sum + p, 0) / popularityValues.length)
+            : null;
+
+        const podcasts = (showsResp?.items || [])
+            .map((item) => item.show)
+            .filter(Boolean)
+            .map((s) => ({ id: s.id, name: s.name, publisher: s.publisher, image: s.images?.[0]?.url || null }));
+
+        return res.status(200).json({
+            profile: profileResp ? { name: profileResp.display_name, image: profileResp.images?.[0]?.url || null } : null,
+            topArtists,
+            topTracks,
+            topGenres,
+            newArtists,
+            onRepeat,
+            mainstreamScore,
+            counts: {
+                likedSongs: likedResp?.total ?? null,
+                savedAlbums: albumsResp?.total ?? null,
+                followedArtists: followingResp?.artists?.total ?? null,
+                playlists: playlistsResp?.total ?? null,
+            },
+            podcasts,
+            timeRange: 'medium_term',
+        });
+    } catch (err) {
+        console.error('wrapped-stats error:', err);
         return res.status(500).json({ error: err?.message || String(err) });
     }
 });
