@@ -345,6 +345,11 @@ html, body {
     font-size: 12.5px;
 }
 
+.footerLink {
+    color: var(--muted2);
+    text-decoration: underline;
+}
+
 @media (max-width: 860px) {
     .heroGrid {
         grid-template-columns: 1fr;

@@ -77,7 +77,9 @@ export default function HomePage() {
             </main>
 
             <footer className="splashFooter">
-                <p>Gigly — made for discovering live music.</p>
+                <p>
+                    Gigly — made for discovering live music. <Link to="/privacy-policy" className="footerLink">Privacy Policy</Link>
+                </p>
             </footer>
         </div>
     );

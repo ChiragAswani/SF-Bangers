@@ -1,0 +1,151 @@
+/* privacy.css — Privacy Policy page, shares the :root tokens from homepage.css */
+
+.privacyShell {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    padding: 32px 24px 64px;
+}
+
+.privacyTopBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 720px;
+    margin: 0 auto 32px;
+}
+
+.privacyBackLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.privacyBrand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.privacyBrandIcon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+}
+
+.privacyBrandText {
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.privacyContent {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.privacyEyebrow {
+    display: block;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.privacyHeadline {
+    margin: 6px 0 4px;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 38px);
+    line-height: 1.15;
+}
+
+.privacyUpdated {
+    margin: 0 0 32px;
+    color: var(--muted2);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.privacyIntro {
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 32px;
+}
+
+.privacySection {
+    margin-bottom: 28px;
+}
+
+.privacySection h2 {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    margin: 0 0 10px;
+}
+
+.privacySection h3 {
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    margin: 16px 0 6px;
+}
+
+.privacySection p {
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin: 0 0 10px;
+}
+
+.privacySection ul {
+    margin: 0 0 10px;
+    padding-left: 20px;
+}
+
+.privacySection li {
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin-bottom: 6px;
+}
+
+.privacySection a {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.privacyFooter {
+    text-align: center;
+    margin-top: 40px;
+}
+
+@media (max-width: 520px) {
+    .privacyShell {
+        padding: 24px 16px 48px;
+    }
+}
