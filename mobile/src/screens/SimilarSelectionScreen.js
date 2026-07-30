@@ -15,7 +15,7 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
   // than a floating pill needs to clear it, so use a tight fixed clearance
   // instead and only fall back to the inset on devices that have none
   const insets = useSafeAreaInsets();
-  const floatingBottom = insets.bottom > 0 ? 22 : spacing.lg;
+  const floatingBottom = insets.bottom > 0 ? insets.bottom + 8 : spacing.xl;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);

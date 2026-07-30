@@ -4,11 +4,45 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ArtistCard from '../components/ArtistCard';
-import { GhostButton, PrimaryButton, SpotifyButton } from '../components/Buttons';
+import { PrimaryButton, SpotifyButton } from '../components/Buttons';
 import { colors, fonts, radii, spacing } from '../theme';
 import { api } from '../api';
+import { USE_SPOTIFY } from '../config';
 
 const CANDIDATE_COUNT = 6;
+
+// Stand-in pool for when Spotify's disabled — a broad, genre-varied set of
+// well-known names so shuffling still feels meaningful. These only seed the
+// similarity search, they aren't tied to the live show data, so any popular
+// artist works fine here.
+const FALLBACK_TOP_ARTISTS = [
+  'Tame Impala',
+  'Turnstile',
+  'SZA',
+  'Fontaines D.C.',
+  'Kendrick Lamar',
+  'Phoebe Bridgers',
+  'Mac DeMarco',
+  'Doja Cat',
+  'The Strokes',
+  'Bad Bunny',
+  'Billie Eilish',
+  'Tyler, The Creator',
+  'boygenius',
+  'King Gizzard & the Lizard Wizard',
+  'Rex Orange County',
+  'Beach House',
+  'Charli XCX',
+  'Frank Ocean',
+  'Clairo',
+  'Idles',
+  'Japanese Breakfast',
+  'Khruangbin',
+  'MGMT',
+  'Vampire Weekend',
+  'Wet Leg',
+  'Yaeji',
+].map((name) => ({ id: `fallback:${name}`, name, images: [] }));
 
 // picks `count` pool artists to browse, preferring ones not already added and
 // not recently shown; once those run out it resets so shuffling never dead-ends
@@ -37,7 +71,7 @@ export default function SeedArtistsScreen({
   // than a floating pill needs to clear it, so use a tight fixed clearance
   // instead and only fall back to the inset on devices that have none
   const insets = useSafeAreaInsets();
-  const floatingBottom = insets.bottom > 0 ? 22 : spacing.lg;
+  const floatingBottom = insets.bottom > 0 ? insets.bottom + 8 : spacing.xl;
 
   const [inputValue, setInputValue] = useState('');
   // the one running list — populated by manual search AND by tapping a
@@ -54,6 +88,16 @@ export default function SeedArtistsScreen({
   const addedNamesLower = useMemo(() => new Set(addedArtists.map((a) => a.name.toLowerCase())), [addedArtists]);
 
   useEffect(() => {
+    if (!USE_SPOTIFY) {
+      if (poolFetchedRef.current) return;
+      poolFetchedRef.current = true;
+      setPool(FALLBACK_TOP_ARTISTS);
+      const { batch } = pickCandidates(FALLBACK_TOP_ARTISTS, addedNamesLower, new Set());
+      setCandidates(batch);
+      shownIds.current = new Set(batch.map((a) => a.id));
+      loadFallbackImages();
+      return;
+    }
     if (spotifyConnected && !poolFetchedRef.current) {
       poolFetchedRef.current = true;
       loadPool();
@@ -65,6 +109,33 @@ export default function SeedArtistsScreen({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spotifyConnected]);
+
+  // The fallback pool has no photos of its own — backfill real artist images
+  // via Spotify's app-only client-credentials token, which (unlike user
+  // OAuth login) isn't gated by Development Mode's allowlisted-user cap.
+  async function loadFallbackImages() {
+    try {
+      const chunks = [];
+      for (let i = 0; i < FALLBACK_TOP_ARTISTS.length; i += 15) {
+        chunks.push(FALLBACK_TOP_ARTISTS.slice(i, i + 15));
+      }
+      const results = await Promise.all(
+        chunks.map((chunk) => api.get('/generate/artist-images', { names: chunk.map((a) => a.name).join(',') }))
+      );
+      const imageByName = new Map();
+      results.flat().forEach((r) => {
+        if (r?.image) imageByName.set(r.name.toLowerCase(), r.image);
+      });
+      const applyImages = (a) => {
+        const image = imageByName.get(a.name.toLowerCase());
+        return image ? { ...a, images: [{ url: image }] } : a;
+      };
+      setPool((prev) => prev.map(applyImages));
+      setCandidates((prev) => prev.map(applyImages));
+    } catch (e) {
+      // no images — the avatar's initial-letter fallback covers it
+    }
+  }
 
   async function loadPool() {
     setPoolLoading(true);
@@ -150,6 +221,11 @@ export default function SeedArtistsScreen({
     });
   }
 
+  const showConnectPrompt = USE_SPOTIFY && !spotifyConnected;
+  const showPoolLoading = USE_SPOTIFY && spotifyConnected && poolLoading;
+  const showPoolError = USE_SPOTIFY && spotifyConnected && !poolLoading && !!poolError;
+  const showGrid = !showConnectPrompt && !showPoolLoading && !showPoolError && candidates.length > 0;
+
   return (
     <View style={styles.stage}>
       <View style={styles.headerRow}>
@@ -197,13 +273,28 @@ export default function SeedArtistsScreen({
 
         <View style={styles.spotifySection}>
           <View style={styles.spotifyHeader}>
-            <FontAwesome name="spotify" size={18} color={colors.spotify} />
-            <Text style={styles.spotifyHeaderText}>
-              {spotifyConnected ? 'Tap to add from your Spotify' : 'Or pull from Spotify'}
-            </Text>
+            <View style={styles.spotifyHeaderLeft}>
+              {USE_SPOTIFY ? (
+                <FontAwesome name="spotify" size={18} color={colors.spotify} />
+              ) : (
+                <Ionicons name="flame" size={18} color={colors.primary} />
+              )}
+              <Text style={styles.spotifyHeaderText}>
+                {USE_SPOTIFY
+                  ? spotifyConnected
+                    ? 'Tap to add from your Spotify'
+                    : 'Or pull from Spotify'
+                  : 'Tap to add a popular artist'}
+              </Text>
+            </View>
+            {showGrid ? (
+              <Pressable onPress={onShuffle} style={styles.shuffleBtn} hitSlop={8}>
+                <Ionicons name="shuffle" size={16} color={colors.ink} />
+              </Pressable>
+            ) : null}
           </View>
 
-          {!spotifyConnected ? (
+          {showConnectPrompt ? (
             <View style={styles.spotifyConnectRow}>
               <SpotifyButton
                 label="Connect Spotify"
@@ -213,27 +304,20 @@ export default function SeedArtistsScreen({
               />
               {authError ? <Text style={styles.error}>{authError}</Text> : null}
             </View>
-          ) : poolLoading ? (
+          ) : showPoolLoading ? (
             <View style={styles.poolLoading}>
               <ActivityIndicator color={colors.primary} />
             </View>
-          ) : poolError ? (
+          ) : showPoolError ? (
             <Text style={styles.error}>{poolError}</Text>
-          ) : candidates.length === 0 ? (
+          ) : !showGrid ? (
             <Text style={styles.mutedText}>You've added all your top artists!</Text>
           ) : (
-            <>
-              <View style={styles.grid}>
-                {candidates.map((artist, idx) => (
-                  <ArtistCard key={artist.id} artist={artist} index={idx} onAdd={() => pickCandidate(artist)} />
-                ))}
-              </View>
-              <GhostButton
-                label="Shuffle"
-                onPress={onShuffle}
-                icon={<Ionicons name="shuffle" size={16} color={colors.ink} />}
-              />
-            </>
+            <View style={styles.grid}>
+              {candidates.map((artist, idx) => (
+                <ArtistCard key={artist.id} artist={artist} index={idx} onAdd={() => pickCandidate(artist)} />
+              ))}
+            </View>
           )}
         </View>
       </ScrollView>
@@ -296,8 +380,19 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
   spotifySection: { gap: spacing.md },
-  spotifyHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  spotifyHeaderText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 14 },
+  spotifyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  spotifyHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
+  spotifyHeaderText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 14, flexShrink: 1 },
+  shuffleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
   spotifyConnectRow: { alignItems: 'flex-start', gap: spacing.sm },
   poolLoading: { paddingVertical: spacing.lg, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: spacing.sm },

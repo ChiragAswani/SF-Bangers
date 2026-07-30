@@ -7,6 +7,7 @@ const VARIANTS = {
   primary: { container: 'primary', text: 'primaryText', spinner: colors.primaryInk },
   spotify: { container: 'spotify', text: 'spotifyText', spinner: '#FFFFFF' },
   ghost: { container: 'ghost', text: 'ghostText', spinner: colors.ink },
+  danger: { container: 'danger', text: 'dangerText', spinner: '#FFFFFF' },
 };
 
 function Button({ variant = 'primary', label, onPress, icon, loading, disabled, style }) {
@@ -46,6 +47,7 @@ function Button({ variant = 'primary', label, onPress, icon, loading, disabled, 
 export const PrimaryButton = (props) => <Button variant="primary" {...props} />;
 export const SpotifyButton = (props) => <Button variant="spotify" {...props} />;
 export const GhostButton = (props) => <Button variant="ghost" {...props} />;
+export const DangerButton = (props) => <Button variant="danger" {...props} />;
 
 const styles = StyleSheet.create({
   base: {
@@ -65,6 +67,8 @@ const styles = StyleSheet.create({
   spotifyText: { color: '#FFFFFF', fontFamily: fonts.displaySemibold, fontSize: 16 },
   ghost: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
   ghostText: { color: colors.ink, fontFamily: fonts.displaySemibold, fontSize: 16 },
+  danger: { backgroundColor: colors.danger, borderColor: colors.danger },
+  dangerText: { color: '#FFFFFF', fontFamily: fonts.displaySemibold, fontSize: 16 },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
 });

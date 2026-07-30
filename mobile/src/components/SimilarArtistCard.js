@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -74,6 +74,16 @@ export default function SimilarArtistCard({
 }) {
   const trim = houseColorForName(item.name);
 
+  // onTextLayout reports the reason's natural line count regardless of the
+  // numberOfLines clamp, so we can tell whether it actually overflows
+  // without a measure-then-reflow render pass.
+  const [reasonExpanded, setReasonExpanded] = useState(false);
+  const [reasonOverflows, setReasonOverflows] = useState(false);
+
+  function handleReasonLayout(e) {
+    if (e.nativeEvent.lines.length > 2) setReasonOverflows(true);
+  }
+
   const handlePress = () => {
     Haptics.selectionAsync().catch(() => {});
     onToggle();
@@ -140,9 +150,27 @@ export default function SimilarArtistCard({
       />
 
       {item.reason ? (
-        <Text style={styles.reason} numberOfLines={2}>
-          {item.reason}
-        </Text>
+        <View>
+          <Text
+            style={styles.reason}
+            numberOfLines={reasonExpanded ? undefined : 2}
+            onTextLayout={handleReasonLayout}
+          >
+            {item.reason}
+          </Text>
+          {reasonOverflows ? (
+            <Pressable
+              onPress={() => setReasonExpanded((v) => !v)}
+              hitSlop={6}
+              style={styles.reasonToggle}
+            >
+              <Text style={[styles.reasonToggleText, { color: trim.bg }]}>
+                {reasonExpanded ? 'Show less' : 'Read more'}
+              </Text>
+              <Ionicons name={reasonExpanded ? 'chevron-up' : 'chevron-down'} size={11} color={trim.bg} />
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {item.nextShow ? (
@@ -160,7 +188,7 @@ export default function SimilarArtistCard({
             </View>
           ) : null}
 
-          <Pressable onPress={handleTicketPress} style={styles.showRow} hitSlop={6}>
+          <Pressable onPress={handleTicketPress} style={[styles.showRow, styles.ticketRow]} hitSlop={6}>
             <Ionicons name="link-outline" size={13} color={trim.bg} />
             <Text style={[styles.ticketText, { color: trim.bg }]}>
               Tickets{item.nextShow.price ? ` · ${item.nextShow.price}` : ''}
@@ -275,8 +303,17 @@ const styles = StyleSheet.create({
   previewBarFill: { height: 3 },
   previewMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 12 },
   reason: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12, lineHeight: 16 },
+  reasonToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 2,
+    marginTop: 2,
+  },
+  reasonToggleText: { fontFamily: fonts.bodyBold, fontSize: 11 },
   showBlock: { gap: 3, marginTop: 2 },
   showRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  ticketRow: { alignSelf: 'flex-start' },
   showText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 12, flexShrink: 1 },
   showTextMuted: { color: colors.muted2, fontFamily: fonts.bodyMedium, fontSize: 12 },
   ticketText: { fontFamily: fonts.bodyBold, fontSize: 12 },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
@@ -8,8 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import LineupPoster from '../components/LineupPoster';
 import SimilarArtistCard from '../components/SimilarArtistCard';
-import { GhostButton, PrimaryButton } from '../components/Buttons';
+import { DangerButton, GhostButton, PrimaryButton, SpotifyButton } from '../components/Buttons';
 import { colors, fonts, radii, spacing } from '../theme';
+import { USE_SPOTIFY } from '../config';
 
 export default function ReviewScreen({
   items,
@@ -22,10 +23,11 @@ export default function ReviewScreen({
   generating,
   error,
 }) {
-  // footer sits in normal flow (not floating), so it needs its own
-  // safe-area clearance now that the app-level SafeAreaView only reserves
-  // the top edge
+  // native safe-area inset reserves ~34pt for the home indicator — way more
+  // than a floating pill needs to clear it, so use a tight fixed clearance
+  // instead and only fall back to the inset on devices that have none
   const insets = useSafeAreaInsets();
+  const floatingBottom = insets.bottom > 0 ? insets.bottom + 8 : spacing.xl;
 
   // owns its own copy so the user can trim their lineup right up until they
   // commit — a real "review" step, not just a read-only recap
@@ -57,11 +59,13 @@ export default function ReviewScreen({
     setPlayingName(name);
   }
 
-  function confirmStartOver() {
-    Alert.alert('Start over?', 'This clears your current lineup and takes you back to the beginning.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Start Over', style: 'destructive', onPress: onStartOver },
-    ]);
+  // In-house sheet (not the native Alert) so the confirm matches the app's
+  // own look and feel rather than the OS system dialog.
+  const [startOverSheetOpen, setStartOverSheetOpen] = useState(false);
+
+  function handleStartOverConfirm() {
+    setStartOverSheetOpen(false);
+    onStartOver();
   }
 
   // Sharing works the same whether or not Spotify is connected — the ticket
@@ -97,7 +101,52 @@ export default function ReviewScreen({
     }
   }
 
+  // Single entry point — tapping the floating button opens an in-house
+  // bottom sheet (not the native Alert) so the choice matches the app's
+  // own look and feel rather than the OS system dialog.
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
+
+  function handleSpotifyChoice() {
+    setShareSheetOpen(false);
+    if (spotifyConnected) onGenerate(lineup);
+    else onConnectAndGenerate(lineup);
+  }
+
+  function handleShareChoice() {
+    setShareSheetOpen(false);
+    handleShare();
+  }
+
   const showCount = lineup.filter((it) => it.nextShow).length;
+
+  const startOverSheet = (
+    <Modal
+      visible={startOverSheetOpen}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setStartOverSheetOpen(false)}
+    >
+      <Pressable style={styles.sheetBackdrop} onPress={() => setStartOverSheetOpen(false)} />
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>Start over?</Text>
+        <Text style={styles.sheetSubtitle}>
+          This clears your current lineup and takes you back to the beginning.
+        </Text>
+
+        <DangerButton
+          label="Start Over"
+          onPress={handleStartOverConfirm}
+          icon={<Ionicons name="arrow-back" size={16} color="#FFFFFF" />}
+          style={styles.sheetButton}
+        />
+
+        <Pressable onPress={() => setStartOverSheetOpen(false)} hitSlop={8} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>Cancel</Text>
+        </Pressable>
+      </View>
+    </Modal>
+  );
 
   if (lineup.length === 0) {
     return (
@@ -106,7 +155,7 @@ export default function ReviewScreen({
           <Pressable onPress={onBack} style={styles.backBtn} hitSlop={12}>
             <Ionicons name="chevron-back" size={15} color={colors.primary} />
           </Pressable>
-          <Pressable onPress={confirmStartOver} hitSlop={8}>
+          <Pressable onPress={() => setStartOverSheetOpen(true)} hitSlop={8}>
             <Text style={styles.startOverText}>Start over</Text>
           </Pressable>
         </View>
@@ -118,6 +167,7 @@ export default function ReviewScreen({
             icon={<Ionicons name="arrow-back" size={16} color={colors.ink} />}
           />
         </View>
+        {startOverSheet}
       </View>
     );
   }
@@ -137,7 +187,7 @@ export default function ReviewScreen({
           </Pressable>
           <Text style={styles.eyebrow}>Your lineup</Text>
         </View>
-        <Pressable onPress={confirmStartOver} hitSlop={8} disabled={generating}>
+        <Pressable onPress={() => setStartOverSheetOpen(true)} hitSlop={8} disabled={generating}>
           <Text style={styles.startOverText}>Start over</Text>
         </Pressable>
       </View>
@@ -179,37 +229,50 @@ export default function ReviewScreen({
         })}
       </ScrollView>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-        {spotifyConnected ? (
-          <PrimaryButton
-            label="Save Lineup to Spotify"
-            onPress={() => onGenerate(lineup)}
-            loading={generating}
-            icon={<FontAwesome name="spotify" size={16} color={colors.primaryInk} />}
-          />
-        ) : (
-          <>
-            <PrimaryButton
-              label="Connect Spotify to Save"
-              onPress={() => onConnectAndGenerate(lineup)}
-              loading={generating}
-              icon={<FontAwesome name="spotify" size={16} color={colors.primaryInk} />}
-            />
-          </>
-        )}
-
-        <Pressable onPress={handleShare} style={styles.shareRow} hitSlop={8} disabled={sharing}>
-          {sharing ? (
-            <ActivityIndicator size="small" color={colors.muted} />
-          ) : (
-            <Ionicons name="share-outline" size={15} color={colors.muted} />
-          )}
-          <Text style={styles.shareText}>Share your lineup</Text>
-        </Pressable>
+      <View style={[styles.actions, { bottom: floatingBottom }]}>
+        {error ? <Text style={styles.saveMessage}>{error}</Text> : null}
         {shareError ? <Text style={styles.saveMessage}>{shareError}</Text> : null}
+        <PrimaryButton
+          label="Share your lineup"
+          onPress={USE_SPOTIFY ? () => setShareSheetOpen(true) : handleShare}
+          loading={sharing || generating}
+          icon={<Ionicons name="share-outline" size={16} color={colors.primaryInk} />}
+          style={styles.floatingShadow}
+        />
       </View>
+
+      <Modal
+        visible={shareSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareSheetOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setShareSheetOpen(false)} />
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>Share your lineup</Text>
+          <Text style={styles.sheetSubtitle}>Save it to Spotify, or share the poster with friends.</Text>
+
+          <SpotifyButton
+            label={spotifyConnected ? 'Save to Spotify' : 'Connect Spotify to save'}
+            onPress={handleSpotifyChoice}
+            icon={<FontAwesome name="spotify" size={16} color="#FFFFFF" />}
+            style={styles.sheetButton}
+          />
+          <GhostButton
+            label="Share"
+            onPress={handleShareChoice}
+            icon={<Ionicons name="share-outline" size={16} color={colors.ink} />}
+            style={styles.sheetButton}
+          />
+
+          <Pressable onPress={() => setShareSheetOpen(false)} hitSlop={8} style={styles.sheetCancel}>
+            <Text style={styles.sheetCancelText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
+      {startOverSheet}
     </View>
   );
 }
@@ -253,11 +316,23 @@ const styles = StyleSheet.create({
   },
   statText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 12 },
   list: { flex: 1 },
-  listContent: { paddingBottom: spacing.lg, paddingTop: spacing.sm },
+  listContent: { paddingBottom: spacing.xl * 2, paddingTop: spacing.sm },
   emptyCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   mutedText: { color: colors.muted, fontFamily: fonts.bodyMedium, fontSize: 14 },
-  error: { color: colors.danger, fontFamily: fonts.bodyMedium, fontSize: 13, textAlign: 'center', marginTop: spacing.sm },
-  actions: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.md },
+  actions: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  floatingShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+  },
   startOverText: {
     color: colors.muted,
     fontFamily: fonts.bodySemibold,
@@ -266,22 +341,47 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   hiddenPosterWrap: { position: 'absolute', top: -10000, left: 0 },
-  shareRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: spacing.xs,
-    paddingVertical: spacing.xs,
-  },
-  shareText: {
-    color: colors.muted,
-    fontFamily: fonts.bodySemibold,
-    fontSize: 13,
-  },
   saveMessage: {
     color: colors.muted,
     fontFamily: fonts.bodySemibold,
     fontSize: 12,
     textAlign: 'center',
+  },
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(43, 35, 51, 0.45)' },
+  sheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: radii.pill,
+    backgroundColor: colors.borderStrong,
+    marginBottom: spacing.xs,
+  },
+  sheetTitle: {
+    color: colors.ink,
+    fontFamily: fonts.displayBold,
+    fontSize: 20,
+    textAlign: 'center',
+  },
+  sheetSubtitle: {
+    color: colors.muted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  sheetButton: { width: '100%' },
+  sheetCancel: { alignItems: 'center', paddingVertical: spacing.sm, marginTop: spacing.xs },
+  sheetCancelText: {
+    color: colors.muted,
+    fontFamily: fonts.bodySemibold,
+    fontSize: 14,
   },
 });
