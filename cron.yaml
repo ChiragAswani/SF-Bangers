@@ -1,5 +1,5 @@
 cron:
   - description: "Scrape Foopee List"
-    url: /scrape-foopee-list?key=ohBE0DPCNAlRv3lU
+    url: /scrape-foopee-list
     schedule: every monday 11:00
     timezone: America/Los_Angeles

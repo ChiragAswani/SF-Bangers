@@ -23,7 +23,16 @@ const app = express();
 app.disable('etag');
 app.use(express.static(__dirname + '/build', { etag: false }));
 
-app.use(cors({ origin: true, credentials: true }));
+// Only the site's own frontend gets credentialed cross-origin access — requests
+// with no Origin header (mobile app fetches, curl, server-to-server) are still
+// allowed through, since they can't carry cookies to steal in the first place.
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || origin === env.FRONTEND_URL) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -35,7 +44,46 @@ const PKCE_COOKIE = 'sfb_pkce';
 const IS_PROD = env.NODE_ENV === 'prod';
 const MOBILE_AUTH_DEEP_LINK = 'gigly://auth-callback';
 
+// Firestore-backed so the limit is shared across every App Engine instance —
+// an in-memory counter would only cap requests hitting that one instance,
+// not the client overall, once traffic is spread across multiple instances.
+async function checkRateLimit(ip, { limit = 30, windowMs = 10 * 60 * 1000 } = {}) {
+    const key = (ip || 'unknown').replace(/[^a-zA-Z0-9]/g, '_');
+    const ref = db.collection('rateLimits').doc(key);
+    const now = Date.now();
+
+    return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const data = snap.exists ? snap.data() : null;
+
+        if (!data || now - data.windowStart > windowMs) {
+            tx.set(ref, { windowStart: now, count: 1 });
+            return true;
+        }
+        if (data.count >= limit) return false;
+
+        tx.update(ref, { count: admin.firestore.FieldValue.increment(1) });
+        return true;
+    });
+}
+
+function clientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string' && forwarded.trim()) return forwarded.split(',')[0].trim();
+    return req.socket.remoteAddress;
+}
+
+// Logs the real error server-side but never echoes internal details (file
+// paths, Firestore/Anthropic error text, etc.) back to whoever called the API.
+function sendServerError(res, label, err) {
+    console.error(`${label}:`, err);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+}
+
 app.get('/similar-artists', async (req, res) => {
+    const allowed = await checkRateLimit(clientIp(req));
+    if (!allowed) return res.status(429).json({ error: 'Too many requests — please try again in a bit.' });
+
     const mode = ['blowing-up', 'hidden-gems'].includes(req.query.mode) ? req.query.mode : undefined;
     if (typeof req.query.artists === 'string' && req.query.artists.trim()) {
         const artistNames = req.query.artists.split(',').map((n) => n.trim()).filter(Boolean).slice(0, 10);
@@ -46,8 +94,7 @@ app.get('/similar-artists', async (req, res) => {
             const results = await findSimilarArtistsForGroup(db, credentials.ANTHROPIC_API_KEY, artistNames, { mode });
             return res.status(200).json(results);
         } catch (err) {
-            console.error('similar-artists (group) error:', err);
-            return res.status(500).json({ error: err?.message || String(err) });
+            return sendServerError(res, 'similar-artists (group) error', err);
         }
     }
 
@@ -59,8 +106,7 @@ app.get('/similar-artists', async (req, res) => {
         const results = await findSimilarArtists(db, credentials.ANTHROPIC_API_KEY, req.query.artist.trim(), { mode });
         return res.status(200).json(results);
     } catch (err) {
-        console.error('similar-artists error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'similar-artists error', err);
     }
 });
 
@@ -169,8 +215,7 @@ app.get('/generate/top-artists', async (req, res) => {
 
         return res.status(200).json({ artists: pool });
     } catch (err) {
-        console.error('top-artists error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'top-artists error', err);
     }
 });
 
@@ -313,8 +358,7 @@ app.get('/generate/wrapped-stats', async (req, res) => {
             timeRange: 'medium_term',
         });
     } catch (err) {
-        console.error('wrapped-stats error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'wrapped-stats error', err);
     }
 });
 
@@ -345,8 +389,7 @@ app.get('/generate/artist-images', async (req, res) => {
         );
         return res.status(200).json(results);
     } catch (err) {
-        console.error('artist-images error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'artist-images error', err);
     }
 });
 
@@ -378,8 +421,7 @@ app.get('/generate/artist-preview', async (req, res) => {
         );
         return res.status(200).json(results);
     } catch (err) {
-        console.error('artist-preview error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'artist-preview error', err);
     }
 });
 
@@ -409,17 +451,16 @@ app.post('/generate/playlist', async (req, res) => {
 
         return res.status(200).json({ playlistId: playlistObj.playlistId });
     } catch (err) {
-        console.error('generate playlist error:', err);
-        return res.status(500).json({ error: err?.message || String(err) });
+        return sendServerError(res, 'generate playlist error', err);
     }
 });
 
 app.get('/scrape-foopee-list', async (req, res) => {
-    if (
-        !req.query ||
-        typeof req.query.key !== "string" ||
-        req.query.key !== "ohBE0DPCNAlRv3lU"
-    ) {
+    // App Engine's own Cron Service sets this header on requests it dispatches
+    // and strips it from any request that comes from outside GCP — that makes
+    // it a stronger, secret-free check than a hardcoded key that lives in the
+    // source (and in cron.yaml, and in git history).
+    if (req.get('X-Appengine-Cron') !== 'true') {
         return res.status(401).send("Unauthorized");
     }
     const artistsColRef = db.collection('foopeeArtists');
