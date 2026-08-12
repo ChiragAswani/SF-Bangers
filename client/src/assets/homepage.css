@@ -196,6 +196,7 @@ html, body {
 
 /* Pill CTA — same shape/weight language as the mobile app's PrimaryButton */
 .appStoreBtn {
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 12px;
