@@ -110,6 +110,31 @@ app.get('/similar-artists', async (req, res) => {
     }
 });
 
+// Fixed cross-genre set of currently-huge names, standing in for "the user's
+// favorite artists" — this reuses findSimilarArtistsForGroup as-is, so SF
+// artists get ranked by how closely they match mainstream taste instead of
+// any one person's picks. Each result comes back tagged with whichever name
+// here it matched (matchedSeed), e.g. "99% similar to Drake".
+const MAINSTREAM_REFERENCE_ARTISTS = [
+    'Drake', 'Taylor Swift', 'Bad Bunny', 'The Weeknd', 'Beyoncé',
+    'Kendrick Lamar', 'SZA', 'Billie Eilish', 'Ariana Grande', 'Post Malone',
+    'Travis Scott', 'Doja Cat', 'Olivia Rodrigo', 'Sabrina Carpenter', 'Chappell Roan',
+    'Tyler, The Creator', 'Frank Ocean', 'Zach Bryan', 'Morgan Wallen', 'Djo',
+    'Sombr', 'Charli XCX', 'Ice Spice', 'Central Cee', 'Gracie Abrams',
+];
+
+app.get('/popular-in-sf', async (req, res) => {
+    const allowed = await checkRateLimit(clientIp(req));
+    if (!allowed) return res.status(429).json({ error: 'Too many requests — please try again in a bit.' });
+
+    try {
+        const results = await findSimilarArtistsForGroup(db, credentials.ANTHROPIC_API_KEY, MAINSTREAM_REFERENCE_ARTISTS, { limit: 24 });
+        return res.status(200).json(results);
+    } catch (err) {
+        return sendServerError(res, 'popular-in-sf error', err);
+    }
+});
+
 app.get('/auth/spotify/login', async (req, res) => {
     try {
         const { clientId } = await getSpotifyAppCredentials(db);

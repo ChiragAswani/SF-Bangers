@@ -33,14 +33,18 @@ setTimeout(() => {
   SplashScreen.hideAsync().catch(() => {});
 }, SPLASH_FALLBACK_MS);
 
-function getBackStep(step) {
+// 'review' is reachable from either the seed-artists path or the popular-in-SF
+// path, so its back target depends on which one was taken — hence fromPopular.
+function getBackStep(step, fromPopular) {
   switch (step) {
     case 'seedArtists':
+      return 'intro';
+    case 'popularInSF':
       return 'intro';
     case 'similarSelection':
       return 'seedArtists';
     case 'review':
-      return 'similarSelection';
+      return fromPopular ? 'popularInSF' : 'similarSelection';
     default:
       return null;
   }
@@ -51,6 +55,7 @@ export default function App() {
   const [step, setStep] = useState('checking');
 
   const [seedArtists, setSeedArtists] = useState([]);
+  const [cameFromPopular, setCameFromPopular] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [playlistId, setPlaylistId] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -81,7 +86,15 @@ export default function App() {
     setStep((prev) => (prev !== 'checking' ? prev : 'intro'));
   }, [authStatus, fontsLoaded]);
 
-  const handleGetStarted = useCallback(() => setStep('seedArtists'), []);
+  const handleGetStarted = useCallback(() => {
+    setCameFromPopular(false);
+    setStep('seedArtists');
+  }, []);
+
+  const handleBrowsePopular = useCallback(() => {
+    setCameFromPopular(true);
+    setStep('popularInSF');
+  }, []);
 
   const handleSpotifySessionExpired = useCallback(() => {
     refresh();
@@ -136,18 +149,19 @@ export default function App() {
     setPlaylistId('');
     setSelectedItems([]);
     setSeedArtists([]);
+    setCameFromPopular(false);
     setStep('intro');
   }, []);
 
   const goBack = useCallback(() => {
-    const prevStep = getBackStep(step);
+    const prevStep = getBackStep(step, cameFromPopular);
     if (prevStep) setStep(prevStep);
-  }, [step]);
+  }, [step, cameFromPopular]);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      const prevStep = getBackStep(step);
+      const prevStep = getBackStep(step, cameFromPopular);
       if (prevStep) {
         setStep(prevStep);
         return true;
@@ -155,7 +169,7 @@ export default function App() {
       return false;
     });
     return () => subscription.remove();
-  }, [step]);
+  }, [step, cameFromPopular]);
 
   return (
     <SafeAreaProvider>
@@ -167,7 +181,7 @@ export default function App() {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : step === 'intro' ? (
-          <IntroScreen onGetStarted={handleGetStarted} />
+          <IntroScreen onGetStarted={handleGetStarted} onBrowsePopular={handleBrowsePopular} />
         ) : step === 'seedArtists' ? (
           <SeedArtistsScreen
             onBack={goBack}
@@ -180,6 +194,8 @@ export default function App() {
           />
         ) : step === 'similarSelection' ? (
           <SimilarSelectionScreen topArtists={seedArtists} onBack={goBack} onNext={handleSimilarNext} />
+        ) : step === 'popularInSF' ? (
+          <SimilarSelectionScreen onBack={goBack} onNext={handleSimilarNext} />
         ) : step === 'review' ? (
           <ReviewScreen
             items={selectedItems}

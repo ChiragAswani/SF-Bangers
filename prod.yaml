@@ -21,6 +21,10 @@ handlers:
     script: auto
     secure: always
 
+  - url: /popular-in-sf
+    script: auto
+    secure: always
+
   - url: /auth/spotify/.*
     script: auto
     secure: always

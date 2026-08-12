@@ -3,10 +3,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GlowBackground from '../components/GlowBackground';
-import { PrimaryButton } from '../components/Buttons';
+import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, house, spacing } from '../theme';
 
-export default function IntroScreen({ onGetStarted }) {
+export default function IntroScreen({ onGetStarted, onBrowsePopular }) {
   return (
     <View style={styles.stage}>
       <GlowBackground />
@@ -26,6 +26,11 @@ export default function IntroScreen({ onGetStarted }) {
           label="Get Started"
           onPress={onGetStarted}
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
+        />
+        <GhostButton
+          label="Browse what's popular in SF"
+          onPress={onBrowsePopular}
+          icon={<Ionicons name="flame" size={16} color={colors.ink} />}
         />
       </Animated.View>
     </View>

@@ -4,6 +4,7 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ArtistCard from '../components/ArtistCard';
+import DiscoveryLoader from '../components/DiscoveryLoader';
 import { PrimaryButton, SpotifyButton } from '../components/Buttons';
 import { colors, fonts, radii, spacing } from '../theme';
 import { api } from '../api';
@@ -82,6 +83,10 @@ export default function SeedArtistsScreen({
   const [poolLoading, setPoolLoading] = useState(false);
   const [poolError, setPoolError] = useState('');
   const [candidates, setCandidates] = useState([]);
+  // covers the App Engine cold-start delay on first load — skipped when
+  // Spotify's enabled but not yet connected, since there's nothing to fetch
+  // until the user taps Connect
+  const [initialLoading, setInitialLoading] = useState(!(USE_SPOTIFY && !spotifyConnected));
   const shownIds = useRef(new Set());
   const poolFetchedRef = useRef(false);
 
@@ -95,7 +100,7 @@ export default function SeedArtistsScreen({
       const { batch } = pickCandidates(FALLBACK_TOP_ARTISTS, addedNamesLower, new Set());
       setCandidates(batch);
       shownIds.current = new Set(batch.map((a) => a.id));
-      loadFallbackImages();
+      loadFallbackImages().finally(() => setInitialLoading(false));
       return;
     }
     if (spotifyConnected && !poolFetchedRef.current) {
@@ -106,6 +111,7 @@ export default function SeedArtistsScreen({
       poolFetchedRef.current = false;
       setPool([]);
       setCandidates([]);
+      setInitialLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spotifyConnected]);
@@ -155,6 +161,7 @@ export default function SeedArtistsScreen({
       setPoolError("Couldn't load your top artists.");
     } finally {
       setPoolLoading(false);
+      setInitialLoading(false);
     }
   }
 
@@ -225,6 +232,17 @@ export default function SeedArtistsScreen({
   const showPoolLoading = USE_SPOTIFY && spotifyConnected && poolLoading;
   const showPoolError = USE_SPOTIFY && spotifyConnected && !poolLoading && !!poolError;
   const showGrid = !showConnectPrompt && !showPoolLoading && !showPoolError && candidates.length > 0;
+
+  if (initialLoading) {
+    return (
+      <View style={styles.stage}>
+        <Pressable onPress={onBack} style={[styles.backBtn, styles.backBtnStandalone]} hitSlop={12}>
+          <Ionicons name="chevron-back" size={15} color={colors.primary} />
+        </Pressable>
+        <DiscoveryLoader />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.stage}>
@@ -339,6 +357,7 @@ const styles = StyleSheet.create({
   stage: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   backBtn: { alignItems: 'center', justifyContent: 'center' },
+  backBtnStandalone: { alignSelf: 'flex-start', marginBottom: spacing.sm },
   scrollContent: { paddingBottom: spacing.xl * 2 },
   eyebrow: {
     color: colors.primary,

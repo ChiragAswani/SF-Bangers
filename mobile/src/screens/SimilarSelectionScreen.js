@@ -10,7 +10,12 @@ import { GhostButton, PrimaryButton } from '../components/Buttons';
 import { colors, fonts, spacing } from '../theme';
 import { api } from '../api';
 
-export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
+export default function SimilarSelectionScreen({ topArtists = [], onBack, onNext }) {
+  // no seed artists means we got here from "Browse what's popular in SF"
+  // rather than picking favorites — same screen, but ranked against a fixed
+  // mainstream reference set server-side instead of the user's own picks
+  const isPopularMode = topArtists.length === 0;
+
   // native safe-area inset reserves ~34pt for the home indicator — way more
   // than a floating pill needs to clear it, so use a tight fixed clearance
   // instead and only fall back to the inset on devices that have none
@@ -50,8 +55,9 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
     setLoading(true);
     setError('');
     try {
-      const names = topArtists.map((a) => a.name).join(',');
-      const results = (await api.get('/similar-artists', { artists: names, mode })) || [];
+      const results = isPopularMode
+        ? (await api.get('/popular-in-sf')) || []
+        : (await api.get('/similar-artists', { artists: topArtists.map((a) => a.name).join(','), mode })) || [];
       setItems(results.map((r) => ({ ...r, image: null, preview: undefined })));
       setLoading(false);
 
@@ -130,12 +136,16 @@ export default function SimilarSelectionScreen({ topArtists, onBack, onNext }) {
         </Pressable>
         <Text style={styles.eyebrow}>Discover</Text>
       </View>
-      <Text style={styles.title}>Artists playing in the Bay Area</Text>
+      <Text style={styles.title}>
+        {isPopularMode ? "What's popular, playing near you" : 'Artists playing in the Bay Area'}
+      </Text>
       <Text style={styles.subhero}>
-        Listen to a preview right here, then pick who you want to see and grab tickets.
+        {isPopularMode
+          ? "Ranked by how closely they match today's biggest names. Listen to a preview, then pick who you want to see."
+          : 'Listen to a preview right here, then pick who you want to see and grab tickets.'}
       </Text>
 
-      <ModeToggle mode={discoveryMode} onChange={onDiscoveryModeChange} />
+      {!isPopularMode && <ModeToggle mode={discoveryMode} onChange={onDiscoveryModeChange} />}
 
       {error ? (
         <View style={styles.center}>
