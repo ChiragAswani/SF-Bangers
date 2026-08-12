@@ -28,7 +28,7 @@ export default function IntroScreen({ onGetStarted, onBrowsePopular }) {
           icon={<Ionicons name="arrow-forward" size={16} color={colors.primaryInk} />}
         />
         <GhostButton
-          label="Browse what's popular in SF"
+          label="Browse what's popular"
           onPress={onBrowsePopular}
           icon={<Ionicons name="flame" size={16} color={colors.ink} />}
         />
