@@ -48,7 +48,7 @@ export default function HomePage() {
                             title="Coming soon"
                         >
                             <AppleGlyph />
-                            <span className="appStoreBtnText" onClick={() => window.open("https://apps.apple.com/us/app/gigly-live-music-discovery/id6793709709", "_blank")}>
+                            <span className="appStoreBtnText" onClick={() => window.open("https://apps.apple.com/us/app/gigly-live-music-discovery/id6793709709")}>
                                 <span className="appStoreBtnSmall">Now available on the</span>
                                 <span className="appStoreBtnBig">App Store</span>
                             </span>
